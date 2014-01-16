@@ -1,22 +1,5 @@
 /*
 
-                           e Y8b    Y8b YV4.08P888 88e
-                          d8b Y8b    Y8b Y888P 888 888D
-                         d888b Y8b    Y8b Y8P  888 88"
-                        d888WuHan8b    Y8b Y   888 b,
-                       d8888888b Y8b    Y8P    888 88b,
-           8888 8888       ,e,                                  888
-           8888 888820088e  " Y8b Y888P ,e e, 888,8, dP"Y ,"Y88b888
-           8888 8888888 88b888 Y8b Y8P d88 88b888 " C88b "8" 888888
-           8888 8888888 888888  Y8b "  888   ,888    Y88D,ee 888888
-           'Y88 88P'888 888888   Y8P    "YeeP"888   d,dP "88 888888
-   888 88b,                    d8  888                     888
-   888 88P' e88 88e  e88 88e  d88  888 e88 88e  ,"Y88b e88 888 ,e e, 888,8,
-   888 8K  d888 888bd888 8Shaoziyang88d888 888b"8" 888d888 888d88 88b888 "
-   888 88b,Y888 888PY888 888P 888  888Y888 888P,ee 888Y888 888888   ,888
-   888 88P' "88 88"  "88 88"  888  888 "88 88" "88 888 "88 888 "YeeP"888
-
-
   Project:       AVR Universal BootLoader
   File:          bootldr.c
                  main program code
@@ -44,9 +27,7 @@
 
 #include "bootcfg.h"
 #include "bootldr.h"
-//#include <stdio.h>
 #include <util/setbaud.h>
-#include <util/delay.h>
 
 //user's application start address
 #define PROG_START         0x0000
@@ -70,9 +51,6 @@ const char msg4[] = "4";//"update success";
 const char msg5[] = "5";//"update fail";
 const char msg6[] = "6";//"enter boot mode";
 const char msg7[] = "7";//"execute user application";
-const char msg8[]  = "8";//"get package number";
-const char msg9[]  = "9";//"received a full data frame";
-const char msg10[] = "10";//"get checksum";
 const char msg11[] = "11";//"calculate checksum";
 const char msg12[] = "12";//"avoid write to boot section";
 const char msg13[] = "13";//"decrypt buffer";
@@ -89,15 +67,11 @@ const char msg23[] = "23";//"set error flag";
 const char msg24[] = "24";//"checksum equal, send ACK";
 const char msg25[] = "25";//"checksum error, ask resend";
 const char msg26[] = "26";//"don't need verify, send ACK directly";
-const char msg27[] = "27";//"no verify, send ACK directly";
-const char msg28[] = "28";//"clear watchdog";
 const char msg29[] = "29";//"LED indicate update status";
 const char msg30[] = "30";//"require resend";
-const char msg31[] = "31";//"too many error, abort update";
-const char msg32[] = "32";//"dead loop, wait watchdog reset";
 const char msg33[] = "33";//"quit bootloader";
-const char msg34[] = "34";
-const char msg35[] = "35";
+const char msg34[] = "34";//too many error, abort update
+const char msg35[] = "35";//require resend packet no is incorrect
 #endif
 const char msg1[] = "1";//"waiting for password";
 const char msg3[] = "3";//"waiting for data";
@@ -175,7 +149,8 @@ void WriteCom(unsigned char dat)
 #endif
 }
 
-//send a byte to comport of verbose
+//send a byte to comport 1 for verbose
+//Added by Mohamed Samy
 void WriteVerboseCom(unsigned char dat)
 {
 
@@ -186,6 +161,21 @@ void WriteVerboseCom(unsigned char dat)
 
 
 }
+
+//Initialize USART (added by mohamed samy)
+void USARTInit(void)                                                                    
+{                                                                              
+	UBRR0H = (25>>8);                                            
+	UBRR0L = 25;                                                 
+	UCSR0C = UCSR0C | (1<<URSEL0) | (1 << UCSZ00)|(1 << UCSZ01); 
+	UCSR0B = UCSR0B | (1 << RXEN0) | (1 << TXEN0);               
+	
+	UBRR1H = (25>>8);                                            
+	UBRR1L = 25;                                                 
+	UCSR1C = UCSR1C | (1<<URSEL1) | (1 << UCSZ10)|(1 << UCSZ11); 
+	UCSR1B = UCSR1B | (1 << RXEN1) | (1 << TXEN1);               
+}
+
 //wait receive a data from comport
 unsigned char WaitCom()
 {
@@ -204,25 +194,6 @@ void putstr(const char *str)
   WriteVerboseCom(0x0A);
 }
 #endif
-void putstr(const char *str)
-{
-	while(*str)
-	WriteVerboseCom(*str++);
-
-	WriteVerboseCom(0x0D);
-	WriteVerboseCom(0x0A);
-}
-//flushing USART buffer by Mohamed Samy
-/*void USART_0_Flush()
-{
-	unsigned char dummy;
-	
-	
-	while( UCSRAREG(0) & (1<< RXCBIT(0)) )
-	{
-        dummy = UDRREG(0);
-	} 
-}*/
 
 //calculate CRC checksum
 void crc16(unsigned char *buf)
@@ -269,6 +240,8 @@ int main(void)
 {
   unsigned char cnt;
   unsigned char packNO;
+  
+  
   #if   (CRCMODE == 0)
 	    unsigned char crch, crcl; 
   #elif (CRCMODE == 1)
@@ -315,21 +288,7 @@ int main(void)
 #endif
 
   //initialize comport with special config value
-  //ComInit();
-  ////////////////////////Mohamed Samy////////////////////////////
-  UBRR0H = (25>>8);                                           ////
-  UBRR0L = 25;                                                ////
-  UCSR0C = UCSR0C | (1<<URSEL0) | (1 << UCSZ00)|(1 << UCSZ01);////
-  UCSR0B = UCSR0B | (1 << RXEN0) | (1 << TXEN0);              ////
-  ///////////////////////Mohamed Samy/////////////////////////////
-  
-  ////////////////////////Mohamed Samy////////////////////////////
-  UBRR1H = (25>>8);                                           ////
-  UBRR1L = 25;                                                ////
-  UCSR1C = UCSR1C | (1<<URSEL1) | (1 << UCSZ10)|(1 << UCSZ11);////
-  UCSR1B = UCSR1B | (1 << RXEN1) | (1 << TXEN1);              ////
-  ///////////////////////Mohamed Samy/////////////////////////////
-
+  USARTInit();  
 #if (InitDelay > 0)
   //some kind of avr mcu need special delay after comport initialization
   for(di = InitDelay; di > 0; di--)
@@ -368,7 +327,6 @@ int main(void)
   //prompt waiting for password
   putstr(msg1);
 #endif
-  putstr(msg1);
   cnt = TimeOutCnt;
   cl = 0;
   while(1)
@@ -415,7 +373,6 @@ int main(void)
 #if VERBOSE
   putstr(msg3);                 //prompt waiting for data
 #endif
-  putstr(msg3);
   //every interval send a "C",waiting XMODEM control command <soh>
   cnt = TimeOutCntC;
   while(1)
@@ -457,19 +414,15 @@ int main(void)
 #endif
 
   //begin to receive data
-  packNO = 0;
-  bufptr = 0;
-  cnt = 0;
+  packNO    = 0;
+  bufptr    = 0;
+  cnt       = 0;
   FlashAddr = 0;
   do
   {  
     packNO++;
-	RecivedPacketNo    =  WaitCom();                          //get package number
+    RecivedPacketNo    =  WaitCom();           //get package number
     PacketNoComplement = ~WaitCom();
-	//putstr("Received packet no is ");
-	//WriteVerboseCom(RecivedPacketNo);       /////////////////////////////
-	//putstr("PacketNoComplement is ");       /////////////////////////////
-	//WriteVerboseCom(PacketNoComplement);    /////////////////////////////
     if ((packNO == RecivedPacketNo) && (packNO == PacketNoComplement)) 
     {
       for(li = 0; li < BUFFERSIZE; li++)      //receive a full data frame
@@ -478,10 +431,10 @@ int main(void)
         bufptr++;
       }
       #if    (CRCMODE == 0)
-             crch = WaitCom();                       //get checksum
+             crch = WaitCom();                       //get CRC
              crcl = WaitCom();
-	  #elif  (CRCMODE == 1)
-             checksum =  WaitCom();
+      #elif  (CRCMODE == 1)
+             checksum =  WaitCom();                  //get check sum
       #endif
       #if VERBOSE
 	      putstr(msg11);                      //calculate checksum
@@ -510,32 +463,32 @@ int main(void)
 
 #if (BUFFERSIZE <= SPM_PAGESIZE)
           
-		  if(bufptr >= SPM_PAGESIZE)          //Flash page full, write flash page;otherwise receive next frame
+          if(bufptr >= SPM_PAGESIZE)          //Flash page full, write flash page;otherwise receive next frame
           {                                   //receive multi frames, write one page
             #if VERBOSE
                 putstr(msg14);                  //Flash page full, write flash page;otherwise receive next frame
             #endif
             #if VERBOSE
-		        putstr(msg15);                //write data to Flash
-			#endif
-			write_one_page(buf);              //write data to Flash
-			#if VERBOSE
-			    putstr(msg16);                //modify Flash page address
+                putstr(msg15);                //write data to Flash
             #endif
-			FlashAddr += SPM_PAGESIZE;        //modify Flash page address
+            write_one_page(buf);              //write data to Flash
+            #if VERBOSE
+                putstr(msg16);                //modify Flash page address
+            #endif
+            FlashAddr += SPM_PAGESIZE;        //modify Flash page address
             bufptr = 0;
           }
 #else
           #if VERBOSE
-		      putstr(msg17);                  //receive one frame, write multi pages
+              putstr(msg17);                  //receive one frame, write multi pages
           #endif
-		  while(bufptr > 0)                   //receive one frame, write multi pages
+          while(bufptr > 0)                   //receive one frame, write multi pages
           {
             write_one_page(&buf[BUFSIZE - bufptr]);
-			#if VERBOSE
-				putstr(msg18);                //modify Flash page address
+            #if VERBOSE
+                putstr(msg18);                //modify Flash page address
             #endif
-			FlashAddr += SPM_PAGESIZE;        //modify Flash page address
+            FlashAddr += SPM_PAGESIZE;        //modify Flash page address
             bufptr -= SPM_PAGESIZE;
           }
 #endif
@@ -544,16 +497,16 @@ int main(void)
         }
         else                                  //ignore flash write when Flash address exceed BootStart
         {
-		 #if VERBOSE	
-			  putstr(msg19);                  //reset receive pointer	
+          #if VERBOSE
+              putstr(msg19);                  //reset receive pointer	
           #endif
-		  bufptr = 0;                         //reset receive pointer
+          bufptr = 0;                         //reset receive pointer
         }
 #endif
 #if VERBOSE
-	putstr(msg20);                            //read flash, and compare with buffer's content
+    putstr(msg20);                            //read flash, and compare with buffer's content
 #endif
-// read flash, and compare with buffer's content
+//read flash, and compare with buffer's content
 #if (ChipCheck > 0) && (BootStart > 0)
 #if (BUFFERSIZE < SPM_PAGESIZE)
         if((bufptr == 0) && (FlashAddr < BootStart))
@@ -561,14 +514,14 @@ int main(void)
         if(FlashAddr < BootStart)
 #endif
         {
-		  #if VERBOSE	
-			  putstr(msg21);	                  //enable application section 
-          #endif
-		  boot_rww_enable();                  //enable application section
           #if VERBOSE
-			  putstr(msg22);                     //clear error flag
+              putstr(msg21);                  //enable application section 
           #endif
-		  cl = 1;                             //clear error flag
+          boot_rww_enable();                  //enable application section
+          #if VERBOSE
+          putstr(msg22);                      //clear error flag
+          #endif
+          cl = 1;                             //clear error flag
           for(pagptr = 0; pagptr < BUFSIZE; pagptr++)
           {
 #if (FLASHEND > 0xFFFFUL)
@@ -577,104 +530,86 @@ int main(void)
             if(pgm_read_byte(FlashAddr - BUFSIZE + pagptr) != buf[pagptr])
 #endif
             {
-			  #if VERBOSE	
-				  putstr(msg23);              //set error flag	
+              #if VERBOSE
+                  putstr(msg23);              //set error flag	
               #endif
-			  cl = 0;                         //set error flag
-			  break;
+              cl = 0;                         //set error flag
+              break;
             }
           }
           if(cl)                              //checksum equal, send ACK
           {
-			#if VERBOSE  
-				putstr(msg24);                //checksum equal, send ACK  
+            #if VERBOSE  
+                putstr(msg24);                //checksum equal, send ACK  
             #endif
-			WriteCom(XMODEM_ACK);
+            WriteCom(XMODEM_ACK);
             cnt = 0;
           }
           else
           {
-			#if VERBOSE  
-				putstr(msg25);                //checksum error, ask resend  
+            #if VERBOSE  
+                putstr(msg25);                //checksum error, ask resend  
             #endif
-			WriteCom(XMODEM_NAK);             //checksum error, ask resend
+            WriteCom(XMODEM_NAK);             //checksum error, ask resend
             cnt++;                            //increase error counter
             FlashAddr -= BUFSIZE;             //modify Flash page address
           }
         }
         else                                  //don't need verify, send ACK directly
         {
-		  #if VERBOSE
-			  putstr(msg26);                  //don't need verify, send ACK directly	
+          #if VERBOSE
+          putstr(msg26);                  //don't need verify, send ACK directly	
           #endif
-		  WriteCom(XMODEM_ACK);
+          WriteCom(XMODEM_ACK);
           cnt = 0;
         }
 #else
         #if VERBOSE
-			putstr(27);                       //no verify, send ACK directly
+            putstr(27);                       //no verify, send ACK directly
         #endif
-		WriteCom(XMODEM_ACK);                 //no verify, send ACK directly
+        WriteCom(XMODEM_ACK);                 //no verify, send ACK directly
         cnt = 0;
 #endif
 
 #if WDG_En
         #if VERBOSE
-			putstr(28);                       //clear watchdog
+            putstr(28);                       //clear watchdog
         #endif
-		wdt_reset();                          //clear watchdog
+        wdt_reset();                          //clear watchdog
 #endif
 
 #if LED_En
-	    #if VERBOSE
-			putstr(msg29);                    //LED indicate update status
+        #if VERBOSE
+        putstr(msg29);                        //LED indicate update status
         #endif
-		LEDAlt();                             //LED indicate update status
+        LEDAlt();                             //LED indicate update status
 #endif
       }
-      else //CRC
+      else                                    //CRC
       {
-		#if VERBOSE  
-		    putstr(msg30);                    //require resend
+        #if VERBOSE  
+            putstr(msg30);                    //require resend
         #endif
-		WriteCom(XMODEM_NAK);                 //require resend
+        WriteCom(XMODEM_NAK);                 //require resend
         cnt++;
       }
     }
     else //PackNo
     {
-	  #if VERBOSE	
-	      putstr(msg35);                      //require resend	
+      #if VERBOSE	
+          putstr(msg35);                      //require resend packet no is incorrect
       #endif
-	  /////////////////////////////Mohamed Samy///////////////////////////////////////////////////////////////
-	  //putstr("PN is ");
-	  //WriteVerboseCom(packNO);                /////////////////////////////
-	  //putstr("Received packet no is ");
-	  //WriteVerboseCom(RecivedPacketNo);       /////////////////////////////
-	  //putstr("PacketNoComplement is ");       /////////////////////////////
-	  //WriteVerboseCom(PacketNoComplement);    /////////////////////////////
-	  packNO--;                               /////////////////////////////
-      //USART_0_Flush();                      /////////////////////////////flush the data in the UART first                        
-	  //for(li = 0; li < BUFFERSIZE; li++)      /////////////////////////////receive a full data frame
-      //{                                       /////////////////////////////
-       //   buf[bufptr] = WaitCom();            /////////////////////////////
-       //   bufptr++;                           /////////////////////////////
-      //}                                       /////////////////////////////
-     // #if (CRCMODE  == 0)
-      //    bufptr = WaitCom();                     /////////////////////////////flush the last 2 bytes in buffer
-       //   bufptr = WaitCom();                     /////////////////////////////
-      //#elif (CRCMODE == 1)
-       //   bufptr = WaitCom();                     /////////////////////////////flush the last byte in buffer
-      //#endif                                      /////////////////////////////
-      while(DataInCom())    //////////////////////////
-	  bufptr = ReadCom();                       //////////////////////////////
-	  bufptr = 0;                             /////////////////////////////reinitialize
-	  /////////////////////////////Mohamed Samy///////////////////////////////////////////////////////////////////////////////////
-      WriteCom(XMODEM_NAK);                   //require resend
+      packNO--;                               
+      //////////////////////////////Mohamed Samy///////////////////////////////     
+      while(DataInCom())                        ///////////////////////////////flushing buffer at failure(not tested)
+      bufptr = ReadCom();                       ///////////////////////////////flushing buffer at failure(not tested)
+      bufptr = 0;                               ///////////////////////////////reinitialize the pointer 
+      /////////////////////////////Mohamed Samy////////////////////////////////
+      WriteCom(XMODEM_NAK);                    //require resend
       cnt++;
     }
-	
-	if(cnt > 3)                               //too many error, abort update
+
+    if(cnt > 3)                               //too many error, abort update
     {
         #if VERBOSE
             putstr(msg34);				          //too many error, abort update
@@ -690,7 +625,6 @@ int main(void)
 #if VERBOSE
   if(cnt == 0)
   {
-    //update success
     putstr(msg4);                             //prompt update success
   }
   else
@@ -700,9 +634,9 @@ int main(void)
 
 #if WDG_En
     #if VERBOSE
-		putstr(32);                          //dead loop, wait watchdog reset
+        putstr(32);                          //dead loop, wait watchdog reset
     #endif
-	while(1);                                //dead loop, wait watchdog reset
+    while(1);                                //dead loop, wait watchdog reset
 #endif
 
   }
