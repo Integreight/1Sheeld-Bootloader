@@ -66,7 +66,7 @@
 
 //password
 #if LEVELMODE == 0
-unsigned char KEY[] = {0x64};
+unsigned char KEY[] = {0x06};
 #endif
 
 //comport number: 0/1/2..

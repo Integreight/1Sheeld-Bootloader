@@ -333,6 +333,8 @@ int main(void)
 #endif
   cnt = TimeOutCnt;
   cl = 0;
+  //Send NAK byte by Mohamed Samy
+  WriteCom(XMODEM_NAK);
   while(1)
   {
 	  
