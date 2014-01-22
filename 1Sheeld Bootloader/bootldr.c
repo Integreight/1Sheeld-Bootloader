@@ -25,7 +25,7 @@
 # define BAUD 57600
 #endif
 
-#define UBRR_BOOT_VALUE 16 
+#define UBRR_BOOT_VALUE 34 
 
 #include "bootcfg.h"
 #include "bootldr.h"
@@ -171,13 +171,13 @@ void USARTInit(void)
 	UBRR0L = UBRR_BOOT_VALUE;                                                 
 	UCSR0C = UCSR0C | (1<<URSEL0) | (1 << UCSZ00)|(1 << UCSZ01); 
 	UCSR0B = UCSR0B | (1 << RXEN0) | (1 << TXEN0);               
-	//UCSR0A = UCSR0A | 2;
+	UCSR0A = UCSR0A | 2;
 	 
 	UBRR1H = (UBRR_BOOT_VALUE>>8);                                            
 	UBRR1L = UBRR_BOOT_VALUE;                                                 
 	UCSR1C = UCSR1C | (1<<URSEL1) | (1 << UCSZ10)|(1 << UCSZ11); 
 	UCSR1B = UCSR1B | (1 << RXEN1) | (1 << TXEN1);               
-    //UCSR1A = UCSR1A | 2;
+    UCSR1A = UCSR1A | 2;
 }
 
 //wait receive a data from comport
