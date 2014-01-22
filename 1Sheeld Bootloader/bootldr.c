@@ -18,12 +18,14 @@
 
 */
 #ifndef F_CPU
-#define F_CPU 8000000UL
+#define F_CPU 16000000UL
 #endif
 
 #ifndef BAUD
-# define BAUD 19200
+# define BAUD 57600
 #endif
+
+#define UBRR_BOOT_VALUE 16 
 
 #include "bootcfg.h"
 #include "bootldr.h"
@@ -165,15 +167,17 @@ void WriteVerboseCom(unsigned char dat)
 //Initialize USART (added by mohamed samy)
 void USARTInit(void)                                                                    
 {                                                                              
-	UBRR0H = (25>>8);                                            
-	UBRR0L = 25;                                                 
+	UBRR0H = (UBRR_BOOT_VALUE>>8);                                            
+	UBRR0L = UBRR_BOOT_VALUE;                                                 
 	UCSR0C = UCSR0C | (1<<URSEL0) | (1 << UCSZ00)|(1 << UCSZ01); 
 	UCSR0B = UCSR0B | (1 << RXEN0) | (1 << TXEN0);               
-	
-	UBRR1H = (25>>8);                                            
-	UBRR1L = 25;                                                 
+	//UCSR0A = UCSR0A | 2;
+	 
+	UBRR1H = (UBRR_BOOT_VALUE>>8);                                            
+	UBRR1L = UBRR_BOOT_VALUE;                                                 
 	UCSR1C = UCSR1C | (1<<URSEL1) | (1 << UCSZ10)|(1 << UCSZ11); 
 	UCSR1B = UCSR1B | (1 << RXEN1) | (1 << TXEN1);               
+    //UCSR1A = UCSR1A | 2;
 }
 
 //wait receive a data from comport

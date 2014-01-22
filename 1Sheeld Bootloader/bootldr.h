@@ -62,9 +62,9 @@
 //check baudrate register error
 //mocro below maybe not same in different C compiler
 #define FreqTemp           (16UL * BAUDRATE * (((F_CPU * 10) / (16 * BAUDRATE) + 5)/ 10))
-#if ((FreqTemp * 50) > (51 * F_CPU)) || ((FreqTemp * 50) < (49 * F_CPU))
-#error "BaudRate error > 2% ! Please check BaudRate and F_CPU value."
-#endif
+//#if ((FreqTemp * 50) > (51 * F_CPU)) || ((FreqTemp * 50) < (49 * F_CPU))
+//#error "BaudRate error > 2% ! Please check BaudRate and F_CPU value."
+//#endif
 
 //internal use macro
 #define CONCAT(a, b)       a ## b

@@ -28,11 +28,11 @@
 
 //system clock(Hz)
 #ifndef F_CPU
-#define F_CPU              8000000UL
+#define F_CPU              16000000UL
 #endif
 
 //baudrate
-#define BAUDRATE           9600
+#define BAUDRATE           57600
 
 //Boot section start address(byte)
 //define BootStart to 0 will disable this function
@@ -70,7 +70,7 @@ unsigned char KEY[] = {0x64};
 #endif
 
 //comport number: 0/1/2..
-#define COMPORTNo          0
+#define COMPORTNo          1
 
 //enable watchdog
 #define WDGEn              0
