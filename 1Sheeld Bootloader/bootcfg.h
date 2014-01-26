@@ -55,7 +55,7 @@
 #define TimeOutCnt         10
 
 //basic timer interval(ms)
-#define timeclk            500
+#define timeclk            200
 
 //max wait data time = TimeOutCntC * timeclk
 //send 'C' command count
@@ -66,7 +66,7 @@
 
 //password
 #if LEVELMODE == 0
-unsigned char KEY[] = {0x06};
+unsigned char KEY[] = {0x06}; //ACK 
 #endif
 
 //comport number: 0/1/2..
