@@ -59,7 +59,7 @@
 
 //max wait data time = TimeOutCntC * timeclk
 //send 'C' command count
-#define TimeOutCntC        100
+#define TimeOutCntC        250
 
 //password length
 #define CONNECTCNT         1
@@ -79,7 +79,7 @@ unsigned char KEY[] = {0x06}; //ACK
 #define RS485              0
 //RS485/RS422 send control port
 #define RS485PORT          D
-#define RS485TXEn          PD5
+#define RS485TXEn          PD5 
 
 //enable LED indication
 #define LEDEn              1
