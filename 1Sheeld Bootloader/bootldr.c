@@ -596,6 +596,8 @@ int main(void)
         #if VERBOSE  
             putstr(msg30);                    //require resend
         #endif
+		packNO--;
+		bufptr = 0;
         WriteCom(XMODEM_NAK);                 //require resend
         cnt++;
       }
@@ -625,9 +627,14 @@ int main(void)
       
   }
   while(WaitCom() != XMODEM_EOT);
-  WriteCom(XMODEM_ACK);
-
-
+  if(cnt == 0)
+  {
+	   WriteCom(XMODEM_ACK);  
+  }
+  else
+  {
+	   WriteCom(XMODEM_CAN);
+  }
 #if VERBOSE
   if(cnt == 0)
   {
