@@ -62,11 +62,11 @@
 #define TimeOutCntC        250
 
 //password length
-#define CONNECTCNT         1
+#define CONNECTCNT         8
 
 //password
 #if LEVELMODE == 0
-unsigned char KEY[] = {0x06}; //ACK 
+unsigned char KEY[] = {0x64, 0x0E, 0x1C, 0x39, 0x14, 0x28, 0x57, 0xAA};  
 #endif
 
 //comport number: 0/1/2..
