@@ -351,7 +351,7 @@ int main(void)
         break;
 
 #if LED_En
-      LEDAlt();                 //toggle LED
+      LEDAlt();                 //toggle LED 
 #endif
 
       cnt--;
