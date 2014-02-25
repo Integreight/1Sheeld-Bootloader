@@ -408,7 +408,7 @@ int main(void)
 
     if(DataInCom())
     {
-      if(ReadCom() == XMODEM_SOH)  //XMODEM command <soh>
+      //if(ReadCom() == XMODEM_SOH)  //XMODEM command <soh>
         break;
     }
   }
@@ -424,24 +424,24 @@ int main(void)
   bufptr    = 0;
   cnt       = 0;
   FlashAddr = 0;
-  do
+  while(WaitCom() != XMODEM_EOT)
   {  
     packNO++;
     RecivedPacketNo    =  WaitCom();           //get package number
     PacketNoComplement = ~WaitCom();
-    if ((packNO == RecivedPacketNo) && (packNO == PacketNoComplement)) 
+    for(li = 0; li < BUFFERSIZE; li++)      //receive a full data frame
     {
-      for(li = 0; li < BUFFERSIZE; li++)      //receive a full data frame
-      {
-        buf[bufptr] = WaitCom();
-        bufptr++;
-      }
-      #if    (CRCMODE == 0)
-             crch = WaitCom();                       //get CRC
-             crcl = WaitCom();
-      #elif  (CRCMODE == 1)
-             checksum =  WaitCom();                  //get check sum
-      #endif
+	    buf[bufptr] = WaitCom();
+	    bufptr++;
+    }
+    #if    (CRCMODE == 0)
+    crch = WaitCom();                       //get CRC
+    crcl = WaitCom();
+    #elif  (CRCMODE == 1)
+    checksum =  WaitCom();                  //get check sum
+    #endif
+	if ((packNO == RecivedPacketNo) && (packNO == PacketNoComplement)) 
+    {
       #if VERBOSE
 	      putstr(msg11);                      //calculate checksum
       #endif
@@ -627,7 +627,6 @@ int main(void)
     }  
       
   }
-  while(WaitCom() != XMODEM_EOT);
   if(cnt == 0)
   {
 	   WriteCom(XMODEM_ACK);  
