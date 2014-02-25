@@ -558,6 +558,8 @@ int main(void)
             #endif
             WriteCom(XMODEM_NAK);             //checksum error, ask resend
             cnt++;                            //increase error counter
+			packNO--;
+			bufptr = 0;
             FlashAddr -= BUFSIZE;             //modify Flash page address
           }
         }
@@ -607,14 +609,13 @@ int main(void)
       #if VERBOSE	
           putstr(msg35);                      //require resend packet no is incorrect
       #endif
-      packNO--;                               
+                                     
       //////////////////////////////Mohamed Samy///////////////////////////////     
-      while(DataInCom())                        ///////////////////////////////flushing buffer at failure(not tested)
-      bufptr = ReadCom();                       ///////////////////////////////flushing buffer at failure(not tested)
-      bufptr = 0;                               ///////////////////////////////reinitialize the pointer 
-      /////////////////////////////Mohamed Samy////////////////////////////////
-      WriteCom(XMODEM_NAK);                    //require resend
+      packNO--;
+	  bufptr = 0;                               ///////////////////////////////reinitialize the pointer 
+	  /////////////////////////////Mohamed Samy////////////////////////////////
       cnt++;
+	  WriteCom(XMODEM_NAK);                    //require resend
     }
 
     if(cnt > 3)                               //too many error, abort update
