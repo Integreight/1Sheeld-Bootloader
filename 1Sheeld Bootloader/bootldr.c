@@ -184,9 +184,9 @@ void USARTInit(void)
 //Reset bluetooth
 void ResetBluetooth(void)
 {
-    PORTE |= 1; 
+    PORTC |= 64; 
 	_delay_ms(10);
-	PORTE &= 254;
+	PORTC &= 191;
 }
 
 
@@ -308,8 +308,8 @@ int main(void)
   //Make PE0 output for resetting bluetooth and put its value by 0 initially
   //DDRE  |= 1;
   //PORTE &= 254;
-  DDRE  |= 1;
-  PORTE &= 254;
+  DDRC  |= 64;
+  PORTC &= 191;
     
 #if (InitDelay > 0)
   //some kind of avr mcu need special delay after comport initialization
