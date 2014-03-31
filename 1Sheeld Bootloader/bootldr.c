@@ -180,8 +180,6 @@ void USARTInit(void)
     UCSR1A = UCSR1A | 2;
 }
 
-
-
 //wait receive a data from comport
 unsigned char WaitCom()
 {
@@ -234,7 +232,6 @@ void crc16(unsigned char *buf)
     crc += (unsigned int)(*buf);
 #else
 #error "Unknow CRCMODE!"
-
 #endif
     buf++;
   }
@@ -296,8 +293,6 @@ int main(void)
 
   //initialize comport with special config value
   USARTInit();  
-  
-    
 #if (InitDelay > 0)
   //some kind of avr mcu need special delay after comport initialization
   for(di = InitDelay; di > 0; di--)
