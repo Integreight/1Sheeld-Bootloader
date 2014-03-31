@@ -25,7 +25,7 @@
 # define BAUD 57600
 #endif
 
-#define UBRR_BOOT_VALUE 16 
+#define UBRR_BOOT_VALUE 34 
 
 #include "bootcfg.h"
 #include "bootldr.h"
