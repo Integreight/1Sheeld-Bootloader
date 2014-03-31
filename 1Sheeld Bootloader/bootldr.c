@@ -683,6 +683,7 @@ int main(void)
   #if VERBOSE
 	  putstr(msg33);                          //quit bootloader
   #endif
+  ResetBluetooth();                           //Reset bluetooth when firmware updated correctly
   quit();                                     //quit bootloader
   return 0;
 }
