@@ -18,7 +18,7 @@
 
 */
 #ifndef F_CPU
-#define F_CPU 8000000UL
+#define F_CPU 16000000UL
 #endif
 
 #ifndef BAUD
@@ -30,7 +30,6 @@
 #include "bootcfg.h"
 #include "bootldr.h"
 #include <util/setbaud.h>
-#include <util/delay.h>
 
 //user's application start address
 #define PROG_START         0x0000
@@ -181,13 +180,6 @@ void USARTInit(void)
     UCSR1A = UCSR1A | 2;
 }
 
-//Reset bluetooth
-void ResetBluetooth(void)
-{
-    PORTC |= 64; 
-	_delay_ms(10);
-	PORTC &= 191;
-}
 
 
 //wait receive a data from comport
@@ -305,11 +297,6 @@ int main(void)
   //initialize comport with special config value
   USARTInit();  
   
-  //Make PE0 output for resetting bluetooth and put its value by 0 initially
-  //DDRE  |= 1;
-  //PORTE &= 254;
-  DDRC  |= 64;
-  PORTC &= 191;
     
 #if (InitDelay > 0)
   //some kind of avr mcu need special delay after comport initialization
@@ -683,7 +670,6 @@ int main(void)
   #if VERBOSE
 	  putstr(msg33);                          //quit bootloader
   #endif
-  ResetBluetooth();                           //Reset bluetooth when firmware updated correctly
   quit();                                     //quit bootloader
   return 0;
 }
