@@ -22,10 +22,10 @@
 #endif
 
 #ifndef BAUD
-# define BAUD 57600
+# define BAUD 115200
 #endif
 
-#define UBRR_BOOT_VALUE 7 
+#define UBRR_BOOT_VALUE 3 
 
 #include "bootcfg.h"
 #include "bootldr.h"

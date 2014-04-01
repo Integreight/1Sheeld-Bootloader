@@ -32,7 +32,7 @@
 #endif
 
 //baudrate
-#define BAUDRATE           57600
+#define BAUDRATE           115200
 
 //Boot section start address(byte)
 //define BootStart to 0 will disable this function
