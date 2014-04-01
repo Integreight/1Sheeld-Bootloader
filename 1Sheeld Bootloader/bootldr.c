@@ -18,14 +18,14 @@
 
 */
 #ifndef F_CPU
-#define F_CPU 16000000UL
+#define F_CPU 7372800UL
 #endif
 
 #ifndef BAUD
 # define BAUD 57600
 #endif
 
-#define UBRR_BOOT_VALUE 34 
+#define UBRR_BOOT_VALUE 7 
 
 #include "bootcfg.h"
 #include "bootldr.h"

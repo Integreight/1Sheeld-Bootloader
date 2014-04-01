@@ -28,7 +28,7 @@
 
 //system clock(Hz)
 #ifndef F_CPU
-#define F_CPU              16000000UL
+#define F_CPU              7372800UL
 #endif
 
 //baudrate
