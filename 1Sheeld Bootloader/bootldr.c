@@ -245,7 +245,7 @@ int main(void)
   unsigned char cnt;
   unsigned char packNO;
   
-  
+  DDRB|=(1<<DDB5)|(1<<DDB6)|(1<<DDB7);// make spi pins output
   #if   (CRCMODE == 0)
 	    unsigned char crch, crcl; 
   #elif (CRCMODE == 1)
