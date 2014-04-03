@@ -52,7 +52,7 @@
 
 //max wait password time = TimeOutCnt * timeclk
 //timeout count
-#define TimeOutCnt         10
+#define TimeOutCnt         1
 
 //basic timer interval(ms)
 #define timeclk            200
