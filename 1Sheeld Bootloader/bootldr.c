@@ -129,7 +129,7 @@ void quit()
 #if Decrypt
     DestroyKey();                              //delete decrypt key
 #endif
-
+  TCCR1B = 0;
   boot_rww_enable();                           //enable application section
   (*((void(*)(void))PROG_START))();            //jump
 }
