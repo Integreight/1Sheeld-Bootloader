@@ -1,22 +1,14 @@
 /*
 
-  Project:       AVR Universal BootLoader
+  Project:       1Sheeld Bootloader
+  
   File:          bootcfg.h
-                 user's configuration.
-  Version:       3.5
+                
+  Compiler:      avr-gcc 3.4.2
 
-  Compiler:      GCC 4.2.2 + AVR Studio 4.13sp2 b571
-
-  Author:        Shaoziyang
-                 Shaoziyang@gmail.com
-                 http://avrubd.googlepages.com
+  Author:        Integreight based on AVR Universal Bootloader by Shaoziyang: http://sourceforge.net/projects/avrub
                  
-  Date:          2007.6
-  Made by:       AVRUBD autocode, 09/01/2014 02:07:12 ã
-
-  Modify:        Add your modify log here
-
-  See readme.txt to get more information.
+  Date:          2014.5
 
 */
 

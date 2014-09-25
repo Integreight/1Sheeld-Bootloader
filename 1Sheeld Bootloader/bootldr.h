@@ -1,20 +1,14 @@
 /*
 
-  Project:       AVR Universal BootLoader
+  Project:       1Sheeld Bootloader
+  
   File:          bootldr.h
-                 necessary macro declare
-  Version:       4.0
+                
+  Compiler:      avr-gcc 3.4.2
 
-  Compiler:      WinAVR 20071221 + AVR Studio 4.14.589
-
-  Author:        Shaoziyang
-                 Shaoziyang@gmail.com
-                 http://avrubd.googlepages.com
-                 http://sourceforge.net/projects/avrub
-
-  Date:          2008.4
-
-  See readme.htm to get more information.
+  Author:        Integreight based on AVR Universal Bootloader by Shaoziyang: http://sourceforge.net/projects/avrub
+                 
+  Date:          2014.5
 
 */
 
