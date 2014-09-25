@@ -38,37 +38,6 @@
 //define receive buffer
 unsigned char buf[BUFSIZE];
 
-#if VERBOSE
-//Verbose msgs
-const char msg1[] = "1";//"waiting for password";
-const char msg2[] = "2";//"timeout";
-const char msg3[] = "3";//"waiting for data";
-const char msg4[] = "4";//"update success";
-const char msg5[] = "5";//"update fail";
-const char msg6[] = "6";//"enter boot mode";
-const char msg7[] = "7";//"execute user application";
-const char msg11[] = "11";//"calculate checksum";
-const char msg12[] = "12";//"avoid write to boot section";
-const char msg13[] = "13";//"decrypt buffer";
-const char msg14[] = "14";//"Flash page full, write flash page;otherwise receive next frame";
-const char msg15[] = "15";//"write data to Flash";
-const char msg16[] = "16";//"modify Flash page address 16";
-const char msg17[] = "17";//"receive one frame, write multi pages";
-const char msg18[] = "18";//"modify Flash page address 18";
-const char msg19[] = "19";//"reset receive pointer";
-const char msg20[] = "20";//"read flash, and compare with buffer's content";
-const char msg21[] = "21";//"enable application section";
-const char msg22[] = "22";//"clear error flag";
-const char msg23[] = "23";//"set error flag";
-const char msg24[] = "24";//"checksum equal, send ACK";
-const char msg25[] = "25";//"checksum error, ask resend";
-const char msg26[] = "26";//"don't need verify, send ACK directly";
-const char msg29[] = "29";//"LED indicate update status";
-const char msg30[] = "30";//"require resend";
-const char msg33[] = "33";//"quit bootloader";
-const char msg34[] = "34";//too many error, abort update
-const char msg35[] = "35";//require resend packet no is incorrect
-#endif
 const char msg1[] = "1";//"waiting for password";
 const char msg3[] = "3";//"waiting for data";
 
@@ -180,18 +149,6 @@ unsigned char WaitCom()
   return ReadCom();
 }
 
-#if VERBOSE
-//send a string to uart
-void putstr(const char *str)
-{
-  while(*str)
-    WriteVerboseCom(*str++);
-
-  WriteVerboseCom(0x0D);
-  WriteVerboseCom(0x0A);
-}
-#endif
-
 //calculate CRC checksum
 void crc16(unsigned char *buf)
 {
@@ -301,32 +258,17 @@ int main(void)
 #else
   if(!(PINREG(LEVELPORT) & (1 << LEVELPIN)))
 #endif
-  {
-#if VERBOSE
-    //prompt enter boot mode
-    putstr(msg6);
-#endif
-  }
+  {}
   else
   {
-#if VERBOSE
-    //prompt execute user application
-    putstr(msg7);
-#endif
-
     quit();
   }
 
 #else
   //comport launch boot
-
-#if VERBOSE
-  //prompt waiting for password
-  putstr(msg1);
-#endif
   cnt = TimeOutCnt;
   cl = 0;
-  //Send NAK byte by Mohamed Samy
+  //Send NAK byte 
   WriteCom(XMODEM_NAK);
   while(1)
   {
@@ -350,10 +292,6 @@ int main(void)
       cnt--;
       if(cnt == 0)              //connect timeout
       {
-
-#if VERBOSE
-        putstr(msg2);           //prompt timeout
-#endif
         quit();                 //quit bootloader
       }
     }
@@ -368,10 +306,6 @@ int main(void)
   }
 
 #endif  //LEVELMODE
-
-#if VERBOSE
-  putstr(msg3);                 //prompt waiting for data
-#endif
   //every interval send a "C",waiting XMODEM control command <soh>
   cnt = TimeOutCntC;
   while(1)
@@ -388,9 +322,6 @@ int main(void)
       cnt--;
       if(cnt == 0)              //timeout
       {
-#if VERBOSE
-        putstr(msg2);           //prompt timeout
-#endif
         quit();                 //quit bootloader
       }
     }
@@ -435,9 +366,6 @@ int main(void)
     #endif
 	if ((packNO == RecivedPacketNo) && (packNO == PacketNoComplement)) 
     {
-      #if VERBOSE
-	      putstr(msg11);                      //calculate checksum
-      #endif
 	  crc16(&buf[bufptr - BUFFERSIZE]);       //calculate checksum
       #if   (CRCMODE  == 0)
       if((crch == ch) && (crcl == cl))
@@ -446,17 +374,11 @@ int main(void)
       #endif
 	  {
 #if BootStart
-        #if VERBOSE
-            putstr(msg12);                    //avoid write to boot section
-        #endif
-		if(FlashAddr < BootStart)             //avoid write to boot section
+  		if(FlashAddr < BootStart)             //avoid write to boot section
         {
 #endif
 
 #if Decrypt
-          #if VERBOSE
-              putstr(msg13);                                   //decrypt buffer
-          #endif
 		  DecryptBlock(&buf[bufptr - BUFFERSIZE], BUFFERSIZE); //decrypt buffer
 #endif
 
@@ -464,29 +386,14 @@ int main(void)
           
           if(bufptr >= SPM_PAGESIZE)          //Flash page full, write flash page;otherwise receive next frame
           {                                   //receive multi frames, write one page
-            #if VERBOSE
-                putstr(msg14);                  //Flash page full, write flash page;otherwise receive next frame
-            #endif
-            #if VERBOSE
-                putstr(msg15);                //write data to Flash
-            #endif
             write_one_page(buf);              //write data to Flash
-            #if VERBOSE
-                putstr(msg16);                //modify Flash page address
-            #endif
             FlashAddr += SPM_PAGESIZE;        //modify Flash page address
             bufptr = 0;
           }
 #else
-          #if VERBOSE
-              putstr(msg17);                  //receive one frame, write multi pages
-          #endif
           while(bufptr > 0)                   //receive one frame, write multi pages
           {
             write_one_page(&buf[BUFSIZE - bufptr]);
-            #if VERBOSE
-                putstr(msg18);                //modify Flash page address
-            #endif
             FlashAddr += SPM_PAGESIZE;        //modify Flash page address
             bufptr -= SPM_PAGESIZE;
           }
@@ -496,14 +403,8 @@ int main(void)
         }
         else                                  //ignore flash write when Flash address exceed BootStart
         {
-          #if VERBOSE
-              putstr(msg19);                  //reset receive pointer	
-          #endif
           bufptr = 0;                         //reset receive pointer
         }
-#endif
-#if VERBOSE
-    putstr(msg20);                            //read flash, and compare with buffer's content
 #endif
 //read flash, and compare with buffer's content
 #if (ChipCheck > 0) && (BootStart > 0)
@@ -513,13 +414,7 @@ int main(void)
         if(FlashAddr < BootStart)
 #endif
         {
-          #if VERBOSE
-              putstr(msg21);                  //enable application section 
-          #endif
           boot_rww_enable();                  //enable application section
-          #if VERBOSE
-          putstr(msg22);                      //clear error flag
-          #endif
           cl = 1;                             //clear error flag
           for(pagptr = 0; pagptr < BUFSIZE; pagptr++)
           {
@@ -529,26 +424,17 @@ int main(void)
             if(pgm_read_byte(FlashAddr - BUFSIZE + pagptr) != buf[pagptr])
 #endif
             {
-              #if VERBOSE
-                  putstr(msg23);              //set error flag	
-              #endif
               cl = 0;                         //set error flag
               break;
             }
           }
           if(cl)                              //checksum equal, send ACK
           {
-            #if VERBOSE  
-                putstr(msg24);                //checksum equal, send ACK  
-            #endif
             WriteCom(XMODEM_ACK);
             cnt = 0;
           }
           else
           {
-            #if VERBOSE  
-                putstr(msg25);                //checksum error, ask resend  
-            #endif
             WriteCom(XMODEM_NAK);             //checksum error, ask resend
             cnt++;                            //increase error counter
 			packNO--;
@@ -558,39 +444,24 @@ int main(void)
         }
         else                                  //don't need verify, send ACK directly
         {
-          #if VERBOSE
-          putstr(msg26);                  //don't need verify, send ACK directly	
-          #endif
           WriteCom(XMODEM_ACK);
           cnt = 0;
         }
 #else
-        #if VERBOSE
-            putstr(27);                       //no verify, send ACK directly
-        #endif
         WriteCom(XMODEM_ACK);                 //no verify, send ACK directly
         cnt = 0;
 #endif
 
 #if WDG_En
-        #if VERBOSE
-            putstr(28);                       //clear watchdog
-        #endif
         wdt_reset();                          //clear watchdog
 #endif
 
 #if LED_En
-        #if VERBOSE
-        putstr(msg29);                        //LED indicate update status
-        #endif
         LEDAlt();                             //LED indicate update status
 #endif
       }
       else                                    //CRC
       {
-        #if VERBOSE  
-            putstr(msg30);                    //require resend
-        #endif
 		packNO--;
 		bufptr = 0;
         WriteCom(XMODEM_NAK);                 //require resend
@@ -598,24 +469,15 @@ int main(void)
       }
     }
     else //PackNo
-    {
-      #if VERBOSE	
-          putstr(msg35);                      //require resend packet no is incorrect
-      #endif
-                                     
-      //////////////////////////////Mohamed Samy///////////////////////////////     
+    {    
       packNO--;
-	  bufptr = 0;                               ///////////////////////////////reinitialize the pointer 
-	  /////////////////////////////Mohamed Samy////////////////////////////////
+	  bufptr = 0;                               //reinitialize the pointer 
       cnt++;
 	  WriteCom(XMODEM_NAK);                    //require resend
     }
 
     if(cnt > 3)                               //too many error, abort update
     {
-        #if VERBOSE
-            putstr(msg34);				          //too many error, abort update
-        #endif
         break;
     }  
       
@@ -639,9 +501,6 @@ int main(void)
     putstr(msg5);                             //prompt update fail
 
 #if WDG_En
-    #if VERBOSE
-        putstr(32);                          //dead loop, wait watchdog reset
-    #endif
     while(1);                                //dead loop, wait watchdog reset
 #endif
 
@@ -655,9 +514,6 @@ int main(void)
 #endif
 
 #endif
-  #if VERBOSE
-	  putstr(msg33);                          //quit bootloader
-  #endif
   quit();                                     //quit bootloader
   return 0;
 }
