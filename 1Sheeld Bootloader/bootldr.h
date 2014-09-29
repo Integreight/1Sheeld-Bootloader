@@ -123,7 +123,7 @@
 //timer1: prescale 1024, CTC mode 4, interval unit is millisecond
 #define timerInit()                                                       \
         {                                                                 \
-                           OCR1A  = (unsigned int)(timeclk * (F_CPU  / (1024 * 1000.0f)));\
+                           OCR1A  = (unsigned int)(TIMERINTERVAL * (F_CPU  / (1024 * 1000.0f)));\
                            TCCR1A = 0;                                    \
                            TCCR1B = (1 << WGM12)|(1 << CS12)|(1 << CS10); \
         }
@@ -156,8 +156,8 @@
 #define rs485Disable()     PORTREG(RS485PORT) &= ~(1 << RS485TXEn)
 #endif
 
-#define dataInCom()        (UCSRAREG(COMPORTNo) & (1 << RXCBIT(COMPORTNo)))
-#define readCom()          UDRREG(COMPORTNo)
+#define dataInCom()        (UCSRAREG(COMPORTNO) & (1 << RXCBIT(COMPORTNO)))
+#define readCom()          UDRREG(COMPORTNO)
 
 #endif
 

@@ -104,10 +104,10 @@ void sendByte(unsigned char dat)
   rs485Enable();
 #endif
 
-  UDRREG(COMPORTNo) = dat;
+  UDRREG(COMPORTNO) = dat;
   //wait send finish
-  while(!(UCSRAREG(COMPORTNo) & (1<<TXCBIT(COMPORTNo))));
-  UCSRAREG(COMPORTNo) |= (1 << TXCBIT(COMPORTNo));
+  while(!(UCSRAREG(COMPORTNO) & (1<<TXCBIT(COMPORTNO))));
+  UCSRAREG(COMPORTNO) |= (1 << TXCBIT(COMPORTNO));
 
 #if RS485
   rs485Disable();
@@ -191,8 +191,8 @@ int main(void)
   #elif (CRCMODE == 1)
 	     unsigned char checksum;
   #endif
-#if (InitDelay > 0)
-#if (InitDelay > 255)
+#if (INITUARTDELAY > 0)
+#if (INITUARTDELAY > 255)
   unsigned int di;
 #else
   unsigned char di;
@@ -208,7 +208,7 @@ int main(void)
   //disable global interrupts
   cli();
 
-#if WDGEn
+#if WDGEN
   //if enable watchdog, setup timeout
   wdt_enable(WDTO_1S);
 #else
@@ -228,14 +228,14 @@ int main(void)
 
 #if LED_En
   //set LED control port to output
-  DDRREG(LEDPORT) = (1 << LEDPORTNo);
+  DDRREG(LEDPORT) = (1 << LEDPORTNO);
 #endif
 
   //initialize commport with special config value
   initUART();  
-#if (InitDelay > 0)
+#if (INITUARTDELAY > 0)
   //some kind of avr mcu need special delay after comport initialization
-  for(di = InitDelay; di > 0; di--)
+  for(di = INITUARTDELAY; di > 0; di--)
     __asm__ __volatile__ ("nop": : );
 #endif
 
@@ -256,7 +256,7 @@ int main(void)
 
 #else
   //comport launch boot
-  cnt = TimeOutCnt;
+  cnt = TIMEOUTCOUNT;
   cl = 0;
   //Send NAK byte 
   sendByte(XMODEM_NAK);
@@ -297,7 +297,7 @@ int main(void)
 
 #endif  //LEVELMODE
   //every interval send a "C",waiting XMODEM control command <soh>
-  cnt = TimeOutCntC;
+  cnt = TIMEOUTCOUNTC;
   while(1)
   {
     if(TIFRREG & (1 << OCF1A))  //T1 overflow
@@ -363,8 +363,8 @@ int main(void)
       if(checksum == cl) 
       #endif
 	  {
-#if BootStart
-  		if(FlashAddr < BootStart)             //avoid write to boot section
+#if BOOTSTARTADDRESS
+  		if(FlashAddr < BOOTSTARTADDRESS)             //avoid write to boot section
         {
 #endif
 
@@ -389,7 +389,7 @@ int main(void)
           }
 #endif
 
-#if BootStart
+#if BOOTSTARTADDRESS
         }
         else                                  //ignore flash write when Flash address exceed BootStart
         {
@@ -397,11 +397,11 @@ int main(void)
         }
 #endif
 //read flash, and compare with buffer's content
-#if (ChipCheck > 0) && (BootStart > 0)
+#if (ChipCheck > 0) && (BOOTSTARTADDRESS > 0)
 #if (BUFFERSIZE < SPM_PAGESIZE)
-        if((bufptr == 0) && (FlashAddr < BootStart))
+        if((bufptr == 0) && (FlashAddr < BOOTSTARTADDRESS))
 #else
-        if(FlashAddr < BootStart)
+        if(FlashAddr < BOOTSTARTADDRESS)
 #endif
         {
           boot_rww_enable();                  //enable application section
