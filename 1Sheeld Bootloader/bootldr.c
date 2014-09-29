@@ -74,7 +74,7 @@ unsigned int FlashAddr;
 
 
 //write one Flash page
-void write_one_page(unsigned char *buf)
+void writeOneFlashPage(unsigned char *buf)
 {
   boot_page_erase(FlashAddr);                  //erase one Flash page
   boot_spm_busy_wait();
@@ -87,7 +87,7 @@ void write_one_page(unsigned char *buf)
 }
 
 //jump to user's application
-void quit()
+void quitToUserApplication()
 {
 #if Decrypt
     DestroyKey();                              //delete decrypt key
@@ -98,10 +98,10 @@ void quit()
 }
 
 //send a byte to comport
-void WriteCom(unsigned char dat)
+void sendByte(unsigned char dat)
 {
 #if RS485
-  RS485Enable();
+  rs485Enable();
 #endif
 
   UDRREG(COMPORTNo) = dat;
@@ -110,32 +110,18 @@ void WriteCom(unsigned char dat)
   UCSRAREG(COMPORTNo) |= (1 << TXCBIT(COMPORTNo));
 
 #if RS485
-  RS485Disable();
+  rs485Disable();
 #endif
 }
 
-//send a byte to comport 1 for verbose
-//Added by Mohamed Samy
-void WriteVerboseCom(unsigned char dat)
-{
-
-  UDRREG(1) = dat;
-  //wait send finish
-  while(!(UCSRAREG(1) & (1<<TXCBIT(1))));
-  UCSRAREG(1) |= (1 << TXCBIT(1));
-
-
-}
-
-//Initialize USART (added by mohamed samy)
-void USARTInit(void)                                                                    
+//Initialize USART 
+void initUART(void)                                                                    
 {                                                                              
 	UBRR0H = (UBRR_BOOT_VALUE>>8);                                            
 	UBRR0L = UBRR_BOOT_VALUE;                                                 
 	UCSR0C = (1<<URSEL0) | (1 << UCSZ00)|(1 << UCSZ01); 
 	UCSR0B = (1 << RXEN0) | (1 << TXEN0);               
 	UCSR0A = 2;
-	 
 	UBRR1H = (UBRR_BOOT_VALUE>>8);                                            
 	UBRR1L = UBRR_BOOT_VALUE;                                                 
 	UCSR1C = (1<<URSEL1) | (1 << UCSZ10)|(1 << UCSZ11); 
@@ -143,14 +129,14 @@ void USARTInit(void)
 }
 
 //wait receive a data from comport
-unsigned char WaitCom()
+unsigned char readUARTData()
 {
-  while(!DataInCom());
-  return ReadCom();
+  while(!dataInCom());
+  return readCom();
 }
 
 //calculate CRC checksum
-void crc16(unsigned char *buf)
+void calculateCRC(unsigned char *buf)
 {
 #if (BUFSIZE > 255)
   unsigned int j;
@@ -189,13 +175,17 @@ void crc16(unsigned char *buf)
   cl = crc % 256;
 }
 
+// make spi pins output
+void makeSPIPinsOutput()
+{
+	DDRB|=(1<<DDB5)|(1<<DDB6)|(1<<DDB7);
+}
 //Main routine
 int main(void)
 {
   unsigned char cnt;
   unsigned char packNO;
-  
-  DDRB|=(1<<DDB5)|(1<<DDB6)|(1<<DDB7);// make spi pins output
+  makeSPIPinsOutput();
   #if   (CRCMODE == 0)
 	    unsigned char crch, crcl; 
   #elif (CRCMODE == 1)
@@ -215,7 +205,7 @@ int main(void)
   unsigned char li;
 #endif
 
-  //disable interrupt
+  //disable global interrupts
   cli();
 
 #if WDGEn
@@ -228,12 +218,12 @@ int main(void)
 #endif
 
   //initialize timer1, CTC mode
-  TimerInit();
+  timerInit();
 
 #if RS485
   //initialize RS485 port
   DDRREG(RS485PORT) |= (1 << RS485TXEn);
-  RS485Disable();
+  rs485Disable();
 #endif
 
 #if LED_En
@@ -241,8 +231,8 @@ int main(void)
   DDRREG(LEDPORT) = (1 << LEDPORTNo);
 #endif
 
-  //initialize comport with special config value
-  USARTInit();  
+  //initialize commport with special config value
+  initUART();  
 #if (InitDelay > 0)
   //some kind of avr mcu need special delay after comport initialization
   for(di = InitDelay; di > 0; di--)
@@ -261,7 +251,7 @@ int main(void)
   {}
   else
   {
-    quit();
+    quitToUserApplication();
   }
 
 #else
@@ -269,7 +259,7 @@ int main(void)
   cnt = TimeOutCnt;
   cl = 0;
   //Send NAK byte 
-  WriteCom(XMODEM_NAK);
+  sendByte(XMODEM_NAK);
   while(1)
   {
 	  
@@ -286,19 +276,19 @@ int main(void)
         break;
 
 #if LED_En
-      LEDAlt();                 //toggle LED 
+      ledAlt();                 //toggle LED 
 #endif
 
       cnt--;
       if(cnt == 0)              //connect timeout
       {
-        quit();                 //quit bootloader
+        quitToUserApplication();                 //quit bootloader
       }
     }
 
-    if(DataInCom())             //receive connect key
+    if(dataInCom())             //receive connect key
     {
-      if(ReadCom() == KEY[cl])  //compare ConnectKey
+      if(readCom() == KEY[cl])  //compare ConnectKey
         cl++;
       else
         cl = 0;
@@ -313,16 +303,16 @@ int main(void)
     if(TIFRREG & (1 << OCF1A))  //T1 overflow
     {
       TIFRREG |= (1 << OCF1A);
-      WriteCom(XMODEM_RWC) ;    //send "C"
+      sendByte(XMODEM_RWC) ;    //send "C"
 
 #if LED_En
-      LEDAlt();                 //toggle LED
+      ledAlt();                 //toggle LED
 #endif
 
       cnt--;
       if(cnt == 0)              //timeout
       {
-        quit();                 //quit bootloader
+        quitToUserApplication();                 //quit bootloader
       }
     }
 
@@ -330,7 +320,7 @@ int main(void)
     wdt_reset();                //clear watchdog
 #endif
 
-    if(DataInCom())
+    if(dataInCom())
     {
       //if(ReadCom() == XMODEM_SOH)  //XMODEM command <soh>
         break;
@@ -348,25 +338,25 @@ int main(void)
   bufptr    = 0;
   cnt       = 0;
   FlashAddr = 0;
-  while(WaitCom() != XMODEM_EOT)
+  while(readUARTData() != XMODEM_EOT)
   {  
     packNO++;
-    RecivedPacketNo    =  WaitCom();           //get package number
-    PacketNoComplement = ~WaitCom();
+    RecivedPacketNo    =  readUARTData();           //get package number
+    PacketNoComplement = ~readUARTData();
     for(li = 0; li < BUFFERSIZE; li++)      //receive a full data frame
     {
-	    buf[bufptr] = WaitCom();
+	    buf[bufptr] = readUARTData();
 	    bufptr++;
     }
     #if    (CRCMODE == 0)
-    crch = WaitCom();                       //get CRC
-    crcl = WaitCom();
+    crch = readUARTData();                       //get CRC
+    crcl = readUARTData();
     #elif  (CRCMODE == 1)
-    checksum =  WaitCom();                  //get check sum
+    checksum =  readUARTData();                  //get check sum
     #endif
 	if ((packNO == RecivedPacketNo) && (packNO == PacketNoComplement)) 
     {
-	  crc16(&buf[bufptr - BUFFERSIZE]);       //calculate checksum
+	  calculateCRC(&buf[bufptr - BUFFERSIZE]);       //calculate checksum
       #if   (CRCMODE  == 0)
       if((crch == ch) && (crcl == cl))
       #elif (CRCMODE == 1)
@@ -386,14 +376,14 @@ int main(void)
           
           if(bufptr >= SPM_PAGESIZE)          //Flash page full, write flash page;otherwise receive next frame
           {                                   //receive multi frames, write one page
-            write_one_page(buf);              //write data to Flash
+            writeOneFlashPage(buf);              //write data to Flash
             FlashAddr += SPM_PAGESIZE;        //modify Flash page address
             bufptr = 0;
           }
 #else
           while(bufptr > 0)                   //receive one frame, write multi pages
           {
-            write_one_page(&buf[BUFSIZE - bufptr]);
+            writeOneFlashPage(&buf[BUFSIZE - bufptr]);
             FlashAddr += SPM_PAGESIZE;        //modify Flash page address
             bufptr -= SPM_PAGESIZE;
           }
@@ -430,12 +420,12 @@ int main(void)
           }
           if(cl)                              //checksum equal, send ACK
           {
-            WriteCom(XMODEM_ACK);
+            sendByte(XMODEM_ACK);
             cnt = 0;
           }
           else
           {
-            WriteCom(XMODEM_NAK);             //checksum error, ask resend
+            sendByte(XMODEM_NAK);             //checksum error, ask resend
             cnt++;                            //increase error counter
 			packNO--;
 			bufptr = 0;
@@ -444,11 +434,11 @@ int main(void)
         }
         else                                  //don't need verify, send ACK directly
         {
-          WriteCom(XMODEM_ACK);
+          sendByte(XMODEM_ACK);
           cnt = 0;
         }
 #else
-        WriteCom(XMODEM_ACK);                 //no verify, send ACK directly
+        sendByte(XMODEM_ACK);                 //no verify, send ACK directly
         cnt = 0;
 #endif
 
@@ -457,14 +447,14 @@ int main(void)
 #endif
 
 #if LED_En
-        LEDAlt();                             //LED indicate update status
+        ledAlt();                             //LED indicate update status
 #endif
       }
       else                                    //CRC
       {
 		packNO--;
 		bufptr = 0;
-        WriteCom(XMODEM_NAK);                 //require resend
+        sendByte(XMODEM_NAK);                 //require resend
         cnt++;
       }
     }
@@ -473,7 +463,7 @@ int main(void)
       packNO--;
 	  bufptr = 0;                               //reinitialize the pointer 
       cnt++;
-	  WriteCom(XMODEM_NAK);                    //require resend
+	  sendByte(XMODEM_NAK);                    //require resend
     }
 
     if(cnt > 3)                               //too many error, abort update
@@ -484,11 +474,11 @@ int main(void)
   }
   if(cnt == 0)
   {
-	   WriteCom(XMODEM_ACK);  
+	   sendByte(XMODEM_ACK);  
   }
   else
   {
-	   WriteCom(XMODEM_CAN);
+	   sendByte(XMODEM_CAN);
   }
 #if VERBOSE
   if(cnt == 0)
@@ -514,7 +504,7 @@ int main(void)
 #endif
 
 #endif
-  quit();                                     //quit bootloader
+  quitToUserApplication();                                     //quit bootloader
   return 0;
 }
 

@@ -55,7 +55,7 @@
 
 //check baudrate register error
 //mocro below maybe not same in different C compiler
-#define FreqTemp           (16UL * BAUDRATE * (((F_CPU * 10) / (16 * BAUDRATE) + 5)/ 10))
+#define freqTemp           (16UL * BAUDRATE * (((F_CPU * 10) / (16 * BAUDRATE) + 5)/ 10))
 //#if ((FreqTemp * 50) > (51 * F_CPU)) || ((FreqTemp * 50) < (49 * F_CPU))
 //#error "BaudRate error > 2% ! Please check BaudRate and F_CPU value."
 //#endif
@@ -108,7 +108,7 @@
 #endif
 
 //initialize comport
-#define ComInit()                                                         \
+#define comInit()                                                         \
         {                                                                 \
                            UCSRAREG(COMPORTNo) = 0;                       \
                            UCSRBREG(COMPORTNo) = (1 << RXENBIT(COMPORTNo))|(1 << TXENBIT(COMPORTNo)); \
@@ -118,10 +118,10 @@
         }
 		
 //toggle LED output
-#define LEDAlt()           PORTREG(LEDPORT) ^= (1 << LEDPORTNo)
+#define ledAlt()           PORTREG(LEDPORT) ^= (1 << LEDPORTNo)
 
 //timer1: prescale 1024, CTC mode 4, interval unit is millisecond
-#define TimerInit()                                                       \
+#define timerInit()                                                       \
         {                                                                 \
                            OCR1A  = (unsigned int)(timeclk * (F_CPU  / (1024 * 1000.0f)));\
                            TCCR1A = 0;                                    \
@@ -135,7 +135,7 @@
 #define TIFRREG            TIFR1
 #endif
 
-//Xmoden control command
+//Xmodem control commands
 #define XMODEM_NUL         0x00
 #define XMODEM_SOH         0x01
 #define XMODEM_STX         0x02
@@ -152,12 +152,12 @@
 
 
 #if RS485
-#define RS485Enable()      PORTREG(RS485PORT) |= (1 << RS485TXEn)
-#define RS485Disable()     PORTREG(RS485PORT) &= ~(1 << RS485TXEn)
+#define rs485Enable()      PORTREG(RS485PORT) |= (1 << RS485TXEn)
+#define rs485Disable()     PORTREG(RS485PORT) &= ~(1 << RS485TXEn)
 #endif
 
-#define DataInCom()        (UCSRAREG(COMPORTNo) & (1 << RXCBIT(COMPORTNo)))
-#define ReadCom()          UDRREG(COMPORTNo)
+#define dataInCom()        (UCSRAREG(COMPORTNo) & (1 << RXCBIT(COMPORTNo)))
+#define readCom()          UDRREG(COMPORTNo)
 
 #endif
 
