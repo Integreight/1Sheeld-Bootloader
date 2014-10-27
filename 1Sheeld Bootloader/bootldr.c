@@ -56,23 +56,6 @@ unsigned long int FlashAddr;
 unsigned int FlashAddr;
 #endif
 
-//include decrypt subroutine file
-#if Decrypt
-
-//PC1 decrypt algorithm subroutine
-#if (Algorithm == 0)||(Algorithm == 1)
-
-#include "pc1crypt.c"
-
-#else
-
-#error "Unknow encrypt algorithm!"
-
-#endif
-
-#endif  //Decrypt
-
-
 //write one Flash page
 void writeOneFlashPage(unsigned char *buf)
 {
@@ -89,9 +72,6 @@ void writeOneFlashPage(unsigned char *buf)
 //jump to user's application
 void quitToUserApplication()
 {
-#if Decrypt
-    DestroyKey();                              //delete decrypt key
-#endif
   TCCR1B = 0;
   boot_rww_enable();                           //enable application section
   (*((void(*)(void))PROG_START))();            //jump
@@ -100,18 +80,10 @@ void quitToUserApplication()
 //send a byte to comport
 void sendByte(unsigned char dat)
 {
-#if RS485
-  rs485Enable();
-#endif
-
   UDRREG(COMPORTNO) = dat;
   //wait send finish
   while(!(UCSRAREG(COMPORTNO) & (1<<TXCBIT(COMPORTNO))));
   UCSRAREG(COMPORTNO) |= (1 << TXCBIT(COMPORTNO));
-
-#if RS485
-  rs485Disable();
-#endif
 }
 
 //Initialize USART 
@@ -143,17 +115,12 @@ void calculateCRC(unsigned char *buf)
 #else
   unsigned char j;
 #endif
-
-#if (CRCMODE == 0)
   unsigned char i;
   unsigned int t;
-#endif
   unsigned int crc;
-
   crc = 0;
   for(j = BUFFERSIZE; j > 0; j--)
   {
-#if (CRCMODE == 0)
     //CRC1021 checksum
     crc = (crc ^ (((unsigned int) *buf) << 8));
     for(i = 8; i > 0; i--)
@@ -163,12 +130,6 @@ void calculateCRC(unsigned char *buf)
         t = t ^ 0x1021;
       crc = t;
     }
-#elif (CRCMODE == 1)
-    //word add up checksum
-    crc += (unsigned int)(*buf);
-#else
-#error "Unknow CRCMODE!"
-#endif
     buf++;
   }
   ch = crc / 256;
@@ -186,11 +147,7 @@ int main(void)
   unsigned char cnt;
   unsigned char packNO;
   makeSPIPinsOutput();
-  #if   (CRCMODE == 0)
 	    unsigned char crch, crcl; 
-  #elif (CRCMODE == 1)
-	     unsigned char checksum;
-  #endif
 #if (INITUARTDELAY > 0)
 #if (INITUARTDELAY > 255)
   unsigned int di;
@@ -207,30 +164,11 @@ int main(void)
 
   //disable global interrupts
   cli();
-
-#if WDGEN
-  //if enable watchdog, setup timeout
-  wdt_enable(WDTO_1S);
-#else
   //disable watchdog
   MCUCSR = 0;
   wdt_disable();
-#endif
-
   //initialize timer1, CTC mode
   timerInit();
-
-#if RS485
-  //initialize RS485 port
-  DDRREG(RS485PORT) |= (1 << RS485TXEn);
-  rs485Disable();
-#endif
-
-#if LED_En
-  //set LED control port to output
-  DDRREG(LEDPORT) = (1 << LEDPORTNO);
-#endif
-
   //initialize commport with special config value
   initUART();  
 #if (INITUARTDELAY > 0)
@@ -238,23 +176,6 @@ int main(void)
   for(di = INITUARTDELAY; di > 0; di--)
     __asm__ __volatile__ ("nop": : );
 #endif
-
-#if LEVELMODE
-  //according port level to enter bootloader
-  //set port to input
-  DDRREG(LEVELPORT) &= ~(1 << LEVELPIN);
-#if PINLEVEL
-  if(PINREG(LEVELPORT) & (1 << LEVELPIN))
-#else
-  if(!(PINREG(LEVELPORT) & (1 << LEVELPIN)))
-#endif
-  {}
-  else
-  {
-    quitToUserApplication();
-  }
-
-#else
   //comport launch boot
   cnt = TIMEOUTCOUNT;
   cl = 0;
@@ -262,22 +183,12 @@ int main(void)
   sendByte(XMODEM_NAK);
   while(1)
   {
-	  
-#if WDG_En
-    //clear watchdog
-    wdt_reset();
-#endif
-
     if(TIFRREG & (1<<OCF1A))    //T1 overflow
     {
       TIFRREG |= (1 << OCF1A);
 
       if(cl == CONNECTCNT)      //determine Connect Key
         break;
-
-#if LED_En
-      ledAlt();                 //toggle LED 
-#endif
 
       cnt--;
       if(cnt == 0)              //connect timeout
@@ -294,8 +205,6 @@ int main(void)
         cl = 0;
     }
   }
-
-#endif  //LEVELMODE
   //every interval send a "C",waiting XMODEM control command <soh>
   cnt = TIMEOUTCOUNTC;
   while(1)
@@ -304,22 +213,12 @@ int main(void)
     {
       TIFRREG |= (1 << OCF1A);
       sendByte(XMODEM_RWC) ;    //send "C"
-
-#if LED_En
-      ledAlt();                 //toggle LED
-#endif
-
       cnt--;
       if(cnt == 0)              //timeout
       {
         quitToUserApplication();                 //quit bootloader
       }
     }
-
-#if WDG_En
-    wdt_reset();                //clear watchdog
-#endif
-
     if(dataInCom())
     {
       //if(ReadCom() == XMODEM_SOH)  //XMODEM command <soh>
@@ -328,10 +227,6 @@ int main(void)
   }
 
   TCCR1B = 0;                   //close timer1
-
-#if Decrypt
-  DecryptInit();
-#endif
 
   //begin to receive data
   packNO    = 0;
@@ -348,28 +243,16 @@ int main(void)
 	    buf[bufptr] = readUARTData();
 	    bufptr++;
     }
-    #if    (CRCMODE == 0)
     crch = readUARTData();                       //get CRC
     crcl = readUARTData();
-    #elif  (CRCMODE == 1)
-    checksum =  readUARTData();                  //get check sum
-    #endif
 	if ((packNO == RecivedPacketNo) && (packNO == PacketNoComplement)) 
     {
 	  calculateCRC(&buf[bufptr - BUFFERSIZE]);       //calculate checksum
-      #if   (CRCMODE  == 0)
       if((crch == ch) && (crcl == cl))
-      #elif (CRCMODE == 1)
-      if(checksum == cl) 
-      #endif
 	  {
 #if BOOTSTARTADDRESS
   		if(FlashAddr < BOOTSTARTADDRESS)             //avoid write to boot section
         {
-#endif
-
-#if Decrypt
-		  DecryptBlock(&buf[bufptr - BUFFERSIZE], BUFFERSIZE); //decrypt buffer
 #endif
 
 #if (BUFFERSIZE <= SPM_PAGESIZE)
@@ -441,14 +324,6 @@ int main(void)
         sendByte(XMODEM_ACK);                 //no verify, send ACK directly
         cnt = 0;
 #endif
-
-#if WDG_En
-        wdt_reset();                          //clear watchdog
-#endif
-
-#if LED_En
-        ledAlt();                             //LED indicate update status
-#endif
       }
       else                                    //CRC
       {
@@ -480,30 +355,6 @@ int main(void)
   {
 	   sendByte(XMODEM_CAN);
   }
-#if VERBOSE
-  if(cnt == 0)
-  {
-    putstr(msg4);                             //prompt update success
-  }
-  else
-  {
-    // update fail
-    putstr(msg5);                             //prompt update fail
-
-#if WDG_En
-    while(1);                                //dead loop, wait watchdog reset
-#endif
-
-  }
-
-#else
-
-#if WDG_En
-  if(cnt > 0)
-    while(1);                                //when update fail, use dead loop wait watchdog reset
-#endif
-
-#endif
   quitToUserApplication();                                     //quit bootloader
   return 0;
 }

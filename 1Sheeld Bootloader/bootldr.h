@@ -144,18 +144,7 @@
 #define XMODEM_NAK         0x15
 #define XMODEM_CAN         0x18
 #define XMODEM_EOF         0x1A
-#if CRCMODE
-#define XMODEM_RWC         XMODEM_NAK
-#else
 #define XMODEM_RWC         'C'
-#endif
-
-
-#if RS485
-#define rs485Enable()      PORTREG(RS485PORT) |= (1 << RS485TXEn)
-#define rs485Disable()     PORTREG(RS485PORT) &= ~(1 << RS485TXEn)
-#endif
-
 #define dataInCom()        (UCSRAREG(COMPORTNO) & (1 << RXCBIT(COMPORTNO)))
 #define readCom()          UDRREG(COMPORTNO)
 
