@@ -6,22 +6,12 @@
                 
   Compiler:      avr-gcc 3.4.2
 
-  Author:        Integreight based on AVR Universal Bootloader by Shaoziyang: http://sourceforge.net/projects/avrub
+  Author:        Integreight based on AVR Universal Bootloader by Shao ziyang: http://sourceforge.net/projects/avrub
                  
   Date:          2014.5
 
 */
-#ifndef F_CPU
-#define F_CPU 7372800UL
-#endif
-
-#ifndef BAUD
-# define BAUD 115200
-#endif
-
-#define UBRR_BOOT_VALUE 3 
-
-#include "bootcfg.h"
+//#include "bootcfg.h"
 #include "bootldr.h"
 #include <util/setbaud.h>
 
@@ -29,32 +19,29 @@
 #define PROG_START         0x0000
 
 //receive buffer' size will not smaller than SPM_PAGESIZE
-#if (BUFFERSIZE < SPM_PAGESIZE)
-#define BUFSIZE SPM_PAGESIZE
-#else
-#define BUFSIZE BUFFERSIZE
-#endif
+//#if (BUFFERSIZE < SPM_PAGESIZE)
+//#define BUFSIZE SPM_PAGESIZE
+//#else
+//#define BUFSIZE BUFFERSIZE
+//#endif
 
 //define receive buffer
-unsigned char buf[BUFSIZE];
+unsigned char buf[BUFFERSIZE];
 
-const char msg1[] = "1";//"waiting for password";
-const char msg3[] = "3";//"waiting for data";
-
-#if (BUFSIZE > 255)
-unsigned int bufptr, pagptr;
-#else
+//#if (BUFFERSIZE > 255)
+//unsigned int bufptr, pagptr;
+//#else
 unsigned char bufptr, pagptr;
-#endif
+//#endif
 
 unsigned char ch, cl, RecivedPacketNo, PacketNoComplement;
 
 //Flash address
-#if (FLASHEND > 0xFFFFUL)
-unsigned long int FlashAddr;
-#else
+//#if (FLASHEND > 0xFFFFUL)
+//unsigned long int FlashAddr;
+//#else
 unsigned int FlashAddr;
-#endif
+//#endif
 
 //write one Flash page
 void writeOneFlashPage(unsigned char *buf)
@@ -86,20 +73,6 @@ void sendByte(unsigned char dat)
   UCSRAREG(COMPORTNO) |= (1 << TXCBIT(COMPORTNO));
 }
 
-//Initialize USART 
-void initUART(void)                                                                    
-{                                                                              
-	UBRR0H = (UBRR_BOOT_VALUE>>8);                                            
-	UBRR0L = UBRR_BOOT_VALUE;                                                 
-	UCSR0C = (1<<URSEL0) | (1 << UCSZ00)|(1 << UCSZ01); 
-	UCSR0B = (1 << RXEN0) | (1 << TXEN0);               
-	UCSR0A = 2;
-	UBRR1H = (UBRR_BOOT_VALUE>>8);                                            
-	UBRR1L = UBRR_BOOT_VALUE;                                                 
-	UCSR1C = (1<<URSEL1) | (1 << UCSZ10)|(1 << UCSZ11); 
-	UCSR1B = (1 << RXEN1) | (1 << TXEN1);               
-}
-
 //wait receive a data from comport
 unsigned char readUARTData()
 {
@@ -110,11 +83,11 @@ unsigned char readUARTData()
 //calculate CRC checksum
 void calculateCRC(unsigned char *buf)
 {
-#if (BUFSIZE > 255)
-  unsigned int j;
-#else
+//#if (BUFFERSIZE > 255)
+  //unsigned int j;
+//#else
   unsigned char j;
-#endif
+//#endif
   unsigned char i;
   unsigned int t;
   unsigned int crc;
@@ -136,11 +109,7 @@ void calculateCRC(unsigned char *buf)
   cl = crc % 256;
 }
 
-// make spi pins output
-void makeSPIPinsOutput()
-{
-	DDRB|=(1<<DDB5)|(1<<DDB6)|(1<<DDB7);
-}
+
 //Main routine
 int main(void)
 {
@@ -148,19 +117,19 @@ int main(void)
   unsigned char packNO;
   makeSPIPinsOutput();
 	    unsigned char crch, crcl; 
-#if (INITUARTDELAY > 0)
-#if (INITUARTDELAY > 255)
-  unsigned int di;
-#else
-  unsigned char di;
-#endif
-#endif
+//#if (INITUARTDELAY > 0)
+//#if (INITUARTDELAY > 255)
+  //unsigned int di;
+//#else
+  //unsigned char di;
+//#endif
+//#endif
 
-#if (BUFFERSIZE > 255)
-  unsigned int li;
-#else
+//#if (BUFFERSIZE > 255)
+  //unsigned int li;
+//#else
   unsigned char li;
-#endif
+//#endif
 
   //disable global interrupts
   cli();
@@ -171,11 +140,11 @@ int main(void)
   timerInit();
   //initialize commport with special config value
   initUART();  
-#if (INITUARTDELAY > 0)
-  //some kind of avr mcu need special delay after comport initialization
-  for(di = INITUARTDELAY; di > 0; di--)
-    __asm__ __volatile__ ("nop": : );
-#endif
+//#if (INITUARTDELAY > 0)
+  ////some kind of avr mcu need special delay after comport initialization
+  //for(di = INITUARTDELAY; di > 0; di--)
+    //__asm__ __volatile__ ("nop": : );
+//#endif
   //comport launch boot
   cnt = TIMEOUTCOUNT;
   cl = 0;
@@ -250,12 +219,12 @@ int main(void)
 	  calculateCRC(&buf[bufptr - BUFFERSIZE]);       //calculate checksum
       if((crch == ch) && (crcl == cl))
 	  {
-#if BOOTSTARTADDRESS
+//#if BOOTSTARTADDRESS
   		if(FlashAddr < BOOTSTARTADDRESS)             //avoid write to boot section
         {
-#endif
+//#endif
 
-#if (BUFFERSIZE <= SPM_PAGESIZE)
+//#if (BUFFERSIZE <= SPM_PAGESIZE)
           
           if(bufptr >= SPM_PAGESIZE)          //Flash page full, write flash page;otherwise receive next frame
           {                                   //receive multi frames, write one page
@@ -263,39 +232,39 @@ int main(void)
             FlashAddr += SPM_PAGESIZE;        //modify Flash page address
             bufptr = 0;
           }
-#else
-          while(bufptr > 0)                   //receive one frame, write multi pages
-          {
-            writeOneFlashPage(&buf[BUFSIZE - bufptr]);
-            FlashAddr += SPM_PAGESIZE;        //modify Flash page address
-            bufptr -= SPM_PAGESIZE;
-          }
-#endif
+//#else
+          //while(bufptr > 0)                   //receive one frame, write multi pages
+          //{
+            //writeOneFlashPage(&buf[BUFSIZE - bufptr]);
+            //FlashAddr += SPM_PAGESIZE;        //modify Flash page address
+            //bufptr -= SPM_PAGESIZE;
+          //}
+//#endif
 
-#if BOOTSTARTADDRESS
+//#if BOOTSTARTADDRESS
         }
         else                                  //ignore flash write when Flash address exceed BootStart
         {
           bufptr = 0;                         //reset receive pointer
         }
-#endif
+//#endif
 //read flash, and compare with buffer's content
-#if (ChipCheck > 0) && (BOOTSTARTADDRESS > 0)
-#if (BUFFERSIZE < SPM_PAGESIZE)
-        if((bufptr == 0) && (FlashAddr < BOOTSTARTADDRESS))
-#else
+//#if (ChipCheck > 0) && (BOOTSTARTADDRESS > 0)
+//#if (BUFFERSIZE < SPM_PAGESIZE)
+        //if((bufptr == 0) && (FlashAddr < BOOTSTARTADDRESS))
+//#else
         if(FlashAddr < BOOTSTARTADDRESS)
-#endif
+//#endif
         {
           boot_rww_enable();                  //enable application section
           cl = 1;                             //clear error flag
-          for(pagptr = 0; pagptr < BUFSIZE; pagptr++)
+          for(pagptr = 0; pagptr < BUFFERSIZE; pagptr++)
           {
-#if (FLASHEND > 0xFFFFUL)
-            if(pgm_read_byte_far(FlashAddr - BUFSIZE + pagptr) != buf[pagptr])
-#else
-            if(pgm_read_byte(FlashAddr - BUFSIZE + pagptr) != buf[pagptr])
-#endif
+//#if (FLASHEND > 0xFFFFUL)
+            //if(pgm_read_byte_far(FlashAddr - BUFSIZE + pagptr) != buf[pagptr])
+//#else
+            if(pgm_read_byte(FlashAddr - BUFFERSIZE + pagptr) != buf[pagptr])
+//#endif
             {
               cl = 0;                         //set error flag
               break;
@@ -312,7 +281,7 @@ int main(void)
             cnt++;                            //increase error counter
 			packNO--;
 			bufptr = 0;
-            FlashAddr -= BUFSIZE;             //modify Flash page address
+            FlashAddr -= BUFFERSIZE;             //modify Flash page address
           }
         }
         else                                  //don't need verify, send ACK directly
@@ -320,12 +289,12 @@ int main(void)
           sendByte(XMODEM_ACK);
           cnt = 0;
         }
-#else
-        sendByte(XMODEM_ACK);                 //no verify, send ACK directly
-        cnt = 0;
-#endif
+//#else
+        //sendByte(XMODEM_ACK);                 //no verify, send ACK directly
+        //cnt = 0;
+//#endif
       }
-      else                                    //CRC
+      else                                    //CRC sdfsdfsdf
       {
 		packNO--;
 		bufptr = 0;

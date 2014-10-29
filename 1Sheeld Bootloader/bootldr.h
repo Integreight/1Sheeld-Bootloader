@@ -6,7 +6,7 @@
                 
   Compiler:      avr-gcc 3.4.2
 
-  Author:        Integreight based on AVR Universal Bootloader by Shaoziyang: http://sourceforge.net/projects/avrub
+  Author:        Integreight based on AVR Universal Bootloader by Shao ziyang: http://sourceforge.net/projects/avrub
                  
   Date:          2014.5
 
@@ -21,33 +21,75 @@
 #include <avr/pgmspace.h>
 #include <avr/interrupt.h>
 
+
+//define uart buffer's length
+#define BUFFERSIZE         128
+
+//system clock(Hz)
+#ifndef F_CPU
+#define F_CPU              7372800UL
+#endif
+
+//baudrate
+#define BAUDRATE           115200
+
+//Boot section start address(byte)
+//define BootStart to 0 will disable this function
+#define BOOTSTARTADDRESS          0x1C00 * 2
+
+//max wait password time = TimeOutCnt * timeclk
+//timeout count
+#define TIMEOUTCOUNT         1
+
+//basic timer interval(ms)
+#define TIMERINTERVAL        200
+
+//max wait data time = TimeOutCntC * timeclk
+//send 'C' command count
+#define TIMEOUTCOUNTC        250
+
+//password length
+#define CONNECTCNT         8
+
+//password
+//#if LEVELMODE == 0
+unsigned char KEY[] = {0x64, 0x0E, 0x1C, 0x39, 0x14, 0x28, 0x57, 0xAA};
+//#endif
+
+//comport number: 0/1/2..
+#define COMPORTNO          1
+
 ///////////////////////////////////////////////////////////////
 //Don't modify code below, unless your really konw what to do//
 ///////////////////////////////////////////////////////////////
 
 //certain version compiler missing this in head files
-#ifndef SPM_PAGESIZE
-#error "Not define SPM_PAGESIZE, please define below or update your WinAVR"
-//#define SPM_PAGESIZE       XXX
-#endif
+//#ifndef SPM_PAGESIZE
+//#error "Not define SPM_PAGESIZE, please define below or update your WinAVR"
+////#define SPM_PAGESIZE       XXX
+//#endif
 
-//certain version compiler missing this in head files
-#ifndef FLASHEND
-#error "Not define FLASHEND, please define below or update your WinAVR"
-//#define FLASHEND           XXX
-#endif
+////certain version compiler missing this in head files
+//#ifndef FLASHEND
+//#error "Not define FLASHEND, please define below or update your WinAVR"
+////#define FLASHEND           XXX
+//#endif
 
 //two buffer size must be multiple or submultiple relation
-#if BUFFERSIZE >= SPM_PAGESIZE
-#if (BUFFERSIZE / SPM_PAGESIZE * SPM_PAGESIZE) != BUFFERSIZE
-#error "Result of (BUFFERSIZE / SPM_PAGESIZE) is not a Integer!"
-#error "Please check and set 'BUFFERSIZE/SPM_PAGESIZE' Macro again!"
-#endif
-#else
-#if (SPM_PAGESIZE /BUFFERSIZE * BUFFERSIZE) != SPM_PAGESIZE
-#error "Result of (BUFFERSIZE / SPM_PAGESIZE) is not a Integer!"
-#error "Please check and set 'BUFFERSIZE/SPM_PAGESIZE' Macro again!"
-#endif
+//#if BUFFERSIZE >= SPM_PAGESIZE
+//#if (BUFFERSIZE / SPM_PAGESIZE * SPM_PAGESIZE) != BUFFERSIZE
+//#error "Result of (BUFFERSIZE / SPM_PAGESIZE) is not a Integer!"
+//#error "Please check and set 'BUFFERSIZE/SPM_PAGESIZE' Macro again!"
+//#endif
+//#else
+//#if (SPM_PAGESIZE /BUFFERSIZE * BUFFERSIZE) != SPM_PAGESIZE
+//#error "Result of (BUFFERSIZE / SPM_PAGESIZE) is not a Integer!"
+//#error "Please check and set 'BUFFERSIZE/SPM_PAGESIZE' Macro again!"
+//#endif
+//#endif
+
+#ifndef BAUD
+#define BAUD BAUDRATE
 #endif
 
 //calculate baudrate register
@@ -58,6 +100,10 @@
 #define freqTemp           (16UL * BAUDRATE * (((F_CPU * 10) / (16 * BAUDRATE) + 5)/ 10))
 //#if ((FreqTemp * 50) > (51 * F_CPU)) || ((FreqTemp * 50) < (49 * F_CPU))
 //#error "BaudRate error > 2% ! Please check BaudRate and F_CPU value."
+//#endif
+
+//#ifndef F_CPU
+//#define F_CPU 7372800UL
 //#endif
 
 //internal use macro
@@ -107,26 +153,20 @@
 #define URSEL0             URSEL
 #endif
 
-//initialize comport
-#define comInit()                                                         \
-        {                                                                 \
-                           UCSRAREG(COMPORTNo) = 0;                       \
-                           UCSRBREG(COMPORTNo) = (1 << RXENBIT(COMPORTNo))|(1 << TXENBIT(COMPORTNo)); \
-                           UCSRCREG(COMPORTNo) = USEURSEL|(1 << UCSZBIT(COMPORTNo, 1))|(1 << UCSZBIT(COMPORTNo, 0));\
-                           UBRRHREG(COMPORTNo) = BAUDREG/256;             \
-                           UBRRLREG(COMPORTNo) = BAUDREG%256;             \
-        }
-		
-//toggle LED output
-#define ledAlt()           PORTREG(LEDPORT) ^= (1 << LEDPORTNo)
 
 //timer1: prescale 1024, CTC mode 4, interval unit is millisecond
-#define timerInit()                                                       \
-        {                                                                 \
-                           OCR1A  = (unsigned int)(TIMERINTERVAL * (F_CPU  / (1024 * 1000.0f)));\
-                           TCCR1A = 0;                                    \
-                           TCCR1B = (1 << WGM12)|(1 << CS12)|(1 << CS10); \
-        }
+#define timerInit()															\
+{																			\
+	OCR1A  = (unsigned int)(TIMERINTERVAL * (F_CPU  / (1024 * 1000.0f)));	\
+    TCCR1A = 0;																\
+    TCCR1B = (1 << WGM12)|(1 << CS12)|(1 << CS10);							\
+}
+
+// make spi pins output
+#define makeSPIPinsOutput()						\
+{												\
+	DDRB|=(1<<DDB5)|(1<<DDB6)|(1<<DDB7);		\
+}
 
 //timer1 overflow register
 #ifdef TIFR
@@ -134,6 +174,22 @@
 #else
 #define TIFRREG            TIFR1
 #endif
+
+#define UBRR_BOOT_VALUE 3 
+
+//Initialize USART
+#define initUART()												\
+{                                                               \
+	UBRR0H = (UBRR_BOOT_VALUE>>8);                              \
+	UBRR0L = UBRR_BOOT_VALUE;                                   \
+	UCSR0C = (1<<URSEL0) | (1 << UCSZ00)|(1 << UCSZ01);			\
+	UCSR0B = (1 << RXEN0) | (1 << TXEN0);						\
+	UCSR0A = 2;													\
+	UBRR1H = (UBRR_BOOT_VALUE>>8);								\
+	UBRR1L = UBRR_BOOT_VALUE;                                   \
+	UCSR1C = (1<<URSEL1) | (1 << UCSZ10)|(1 << UCSZ11);			\
+	UCSR1B = (1 << RXEN1) | (1 << TXEN1);						\
+}
 
 //Xmodem control commands
 #define XMODEM_NUL         0x00
