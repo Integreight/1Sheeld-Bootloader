@@ -47,10 +47,10 @@ void quitToUserApplication()
 //send a byte to comport
 void sendByte(unsigned char dat)
 {
-	UDR0 = dat;
+	UDR1 = dat;
 	//wait send finish
-	while(!(UCSR0A & (1<<TXC0)));
-	UCSR0A |= (1 << TXC0);
+	while(!(UCSR1A & (1<<TXC1)));
+	UCSR1A |= (1 << TXC1);
 }
 
 //wait receive a data from comport

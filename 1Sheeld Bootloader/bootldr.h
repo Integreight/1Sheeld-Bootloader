@@ -73,11 +73,6 @@ unsigned char KEY[] = {0x64, 0x0E, 0x1C, 0x39, 0x14, 0x28, 0x57, 0xAA};
 //Initialize Uart
 #define initUART()												\
 {                                                               \
-	UBRR0H = (UBRR_BOOT_VALUE>>8);                              \
-	UBRR0L = UBRR_BOOT_VALUE;                                   \
-	UCSR0C = (1<<URSEL0) | (1 << UCSZ00)|(1 << UCSZ01);			\
-	UCSR0B = (1 << RXEN0) | (1 << TXEN0);						\
-	UBRR1H = (UBRR_BOOT_VALUE>>8);								\
 	UBRR1L = UBRR_BOOT_VALUE;                                   \
 	UCSR1C = (1<<URSEL1) | (1 << UCSZ10)|(1 << UCSZ11);			\
 	UCSR1B = (1 << RXEN1) | (1 << TXEN1);						\
@@ -89,8 +84,8 @@ unsigned char KEY[] = {0x64, 0x0E, 0x1C, 0x39, 0x14, 0x28, 0x57, 0xAA};
 #define XMODEM_NAK         0x15
 #define XMODEM_CAN         0x18
 #define XMODEM_RWC         'C'
-#define dataInCom()        (UCSR0A & (1 << RXC0))
-#define readCom()          UDR0
+#define dataInCom()        (UCSR1A & (1 << RXC1))
+#define readCom()          UDR1
 
 #endif
 
