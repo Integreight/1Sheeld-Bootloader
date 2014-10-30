@@ -50,9 +50,6 @@
 //The password
 unsigned char KEY[] = {0x64, 0x0E, 0x1C, 0x39, 0x14, 0x28, 0x57, 0xAA};
 
-//Calculate baudrate register value
-#define BAUDREG            ((unsigned int)((F_CPU * 10) / (16UL * BAUDRATE) - 5) / 10)
-
 //The firmware application start address
 #define PROG_START         0x0000
 
@@ -69,7 +66,6 @@ unsigned char KEY[] = {0x64, 0x0E, 0x1C, 0x39, 0x14, 0x28, 0x57, 0xAA};
 #define initTimer1()															\
 {																			\
 	OCR1A  = (unsigned int)(TIMERINTERVAL * (F_CPU  / (1024 * 1000.0f)));	\
-	TCCR1A = 0;																\
 	TCCR1B = (1 << WGM12)|(1 << CS12)|(1 << CS10);							\
 }
 
