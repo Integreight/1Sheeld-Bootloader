@@ -117,7 +117,7 @@ int main(void)
 	
 	//Begin to receive data
 	
-	//Check if we received the end of transmission
+	//Check if we received the end of transmission (The first time this character will be SOH)
 	while(waitForTheNextByteAndReadIt() != XMODEM_EOT)
 	{
 		//The next expected packet number
