@@ -6,7 +6,7 @@
 
 	Compiler:      avr-gcc 3.4.2
 
-	Author:        Shao ziyang (http://sourceforge.net/projects/avrub) with a little bit of modifications by Integreight, Inc. team.
+	Author:        Shao Ziyang (http://sourceforge.net/projects/avrub) with a little bit of modifications by Integreight, Inc. team.
 
 	Date:          2014.5
 
@@ -14,207 +14,208 @@
 
 #include "bootldr.h"
 
-//user's application start address
-#define PROG_START         0x0000
-
-//define receive buffer
-unsigned char buf[BUFFERSIZE];
-unsigned char bufptr, pagptr;
-unsigned char ch, cl, RecivedPacketNo, PacketNoComplement;
-unsigned int FlashAddr;
-
-//write one Flash page
-void writeOneFlashPage(unsigned char *buf)
-{
-	boot_page_erase(FlashAddr);                  //erase one Flash page
-	boot_spm_busy_wait();
-	for(pagptr = 0; pagptr < SPM_PAGESIZE; pagptr += 2) //fill data to Flash buffer
-	{
-		boot_page_fill(pagptr, buf[pagptr] + (buf[pagptr + 1] << 8));
-	}
-	boot_page_write(FlashAddr);                  //write buffer to one Flash page
-	boot_spm_busy_wait();                        //wait Flash page write finish
-}
-
-//jump to user's application
-void quitToUserApplication()
-{
-	TCCR1B = 0;
-	boot_rww_enable();                           //enable application section
-	(*((void(*)(void))PROG_START))();            //jump
-}
-
-//send a byte to comport
-void sendByte(unsigned char dat)
-{
-	UDR1 = dat;
-	//wait send finish
-	while(!(UCSR1A & (1<<TXC1)));
-	UCSR1A |= (1 << TXC1);
-}
-
-//wait receive a data from comport
-unsigned char readUARTData()
-{
-	while(!dataInCom());
-	return readCom();
-}
-
-//calculate CRC checksum
-void calculateCRC(unsigned char *buf)
-{
-	unsigned char j;
-	unsigned char i;
-	unsigned int t;
-	unsigned int crc;
-	crc = 0;
-	for(j = BUFFERSIZE; j > 0; j--)
-	{
-		//CRC1021 checksum
-		crc = (crc ^ (((unsigned int) *buf) << 8));
-		for(i = 8; i > 0; i--)
-		{
-			t = crc << 1;
-			if(crc & 0x8000)
-			t = t ^ 0x1021;
-			crc = t;
-		}
-		buf++;
-	}
-	ch = crc / 256;
-	cl = crc % 256;
-}
-
-
-//Main routine
 int main(void)
 {
+	//Define some variables
 	unsigned char cnt;
 	unsigned char packNO;
 	unsigned char crch, crcl;
 	unsigned char li;
+	
+	//As a precaution, make SPI pins as output
 	makeSPIPinsOutput();
-	//disable global interrupts
+	
+	//Disable global interrupts
 	cli();
-	//disable watchdog
-	MCUCSR = 0;
-	wdt_disable();
-	//initialize timer1, CTC mode
-	timerInit();
-	//initialize commport with special config value
-	initUART();
-	//comport launch boot
+	
+	//Disable the watchdog timer
+	disableWatchdogTimer();
+	
+	//Initialize Timer1 in CTC mode
+	initTimer1();
+	
+	//Initialize UART1 with baudrate 115200
+	initUART1();
+
+	//Initialize the cnt with the password timeout count
 	cnt = TIMEOUTCOUNT;
 	cl = 0;
-	//Send NAK byte
+	
+	//Send a starting NAK byte to notify host that we entered the bootloader section
 	sendByte(XMODEM_NAK);
+	
+	//The 8 byte password receiving loop
 	while(1)
 	{
-		if(TIFR & (1<<OCF1A))    //T1 overflow
+		//If Timer1 overflow, then 200ms have passed
+		if(TIFR & (1<<OCF1A))   
 		{
 			TIFR |= (1 << OCF1A);
-
-			if(cl == CONNECTCNT)      //determine Connect Key
+			
+			//If we have already read 8 bytes
+			if(cl == CONNECTCNT)      
 			break;
-
+			
+			//Decrement the number of retries
 			cnt--;
-			if(cnt == 0)              //connect timeout
+			
+			//If we finished the number of retries, quit to the firmware
+			if(cnt == 0)
 			{
-				quitToUserApplication();                 //quit bootloader
+				quitToFirmwareApplication();
 			}
 		}
 
-		if(dataInCom())             //receive connect key
+		if(isUartDataAvailable())
 		{
-			if(readCom() == KEY[cl])  //compare ConnectKey
-			cl++;
+			//Compare the key byte with is corresponding received byte
+			if(readByte() == KEY[cl])
+				cl++;
 			else
-			cl = 0;
+				cl = 0;
 		}
 	}
-	//every interval send a "C",waiting XMODEM control command <soh>
+	
+	//Initialize the cnt with the password timeout count
 	cnt = TIMEOUTCOUNTC;
+	
+	//Every 200ms send a "C" and wait for the first byte
 	while(1)
 	{
+		//If Timer1 overflow, then 200ms have passed
 		if(TIFR & (1 << OCF1A))  //T1 overflow
 		{
 			TIFR |= (1 << OCF1A);
-			sendByte(XMODEM_RWC) ;    //send "C"
+			
+			//send "C"
+			sendByte(XMODEM_RWC);
+			
+			//Decrement the number of retries
 			cnt--;
-			if(cnt == 0)              //timeout
+			
+			//If we finished the number of retries, quit to the firmware
+			if(cnt == 0)
 			{
-				quitToUserApplication();                 //quit bootloader
+				quitToFirmwareApplication();
 			}
 		}
-		if(dataInCom())
+		
+		if(isUartDataAvailable())
 		{
-			//if(ReadCom() == XMODEM_SOH)  //XMODEM command <soh>
 			break;
 		}
 	}
 
-	TCCR1B = 0;                   //close timer1
+	//Reset Timer1
+	TCCR1B = 0;
 
-	//begin to receive data
+	//Initialize some needed variables
 	packNO    = 0;
 	bufptr    = 0;
 	cnt       = 0;
-	FlashAddr = 0;
-	while(readUARTData() != XMODEM_EOT)
+	flashAddress = 0;
+	
+	//Begin to receive data
+	
+	//Check if we received the end of transmission
+	while(waitForTheNextByteAndReadIt() != XMODEM_EOT)
 	{
+		//The next expected packet number
 		packNO++;
-		RecivedPacketNo    =  readUARTData();           //get package number
-		PacketNoComplement = ~readUARTData();
-		for(li = 0; li < BUFFERSIZE; li++)      //receive a full data frame
+		
+		//Read the packet number
+		receivedPacketNumber    =  waitForTheNextByteAndReadIt();
+		
+		//Read the packet number complement
+		packetNumberComplement	= ~waitForTheNextByteAndReadIt();
+		
+		//Receive a full data frame
+		for(li = 0; li < BUFFERSIZE; li++)
 		{
-			buf[bufptr] = readUARTData();
+			buf[bufptr] = waitForTheNextByteAndReadIt();
 			bufptr++;
 		}
-		crch = readUARTData();                       //get CRC
-		crcl = readUARTData();
-		if ((packNO == RecivedPacketNo) && (packNO == PacketNoComplement))
+		
+		//Read the CRC bytes
+		crch = waitForTheNextByteAndReadIt();
+		crcl = waitForTheNextByteAndReadIt();
+		
+		//Check if the received packet number and its complement matches the expected values
+		if ((packNO == receivedPacketNumber) && (packNO == packetNumberComplement))
 		{
-			calculateCRC(&buf[bufptr - BUFFERSIZE]);       //calculate checksum
+			//Calculate the CRC checksum
+			calculateCRCChecksum(&buf[bufptr - BUFFERSIZE]);
+			
+			//Check if it is the same as the received ones
 			if((crch == ch) && (crcl == cl))
 			{
-				if(FlashAddr < BOOTSTARTADDRESS)             //avoid write to boot section
+				//Avoid writing to the boot section
+				if(flashAddress < BOOTSTARTADDRESS)
 				{
-					if(bufptr >= SPM_PAGESIZE)          //Flash page full, write flash page;otherwise receive next frame
-					{                                   //receive multi frames, write one page
-						writeOneFlashPage(buf);              //write data to Flash
-						FlashAddr += SPM_PAGESIZE;        //modify Flash page address
+					//If flash page is full
+					if(bufptr >= SPM_PAGESIZE)
+					{
+						//Write the flash page
+						writeOneFlashPage(buf);
+						
+						//Modify the flash page address
+						flashAddress += SPM_PAGESIZE;
+						
+						//Reset the received data buffer pointer
 						bufptr = 0;
 					}
 				}
-				else                                  //ignore flash write when Flash address exceed BootStart
+				
+				//Ignore flash write when flash address exceeds BootStart
+				else                                  
 				{
-					bufptr = 0;                         //reset receive pointer
+					//Reset the received data buffer pointer
+					bufptr = 0;
 				}
-				//read flash, and compare with buffer's content
-				if(FlashAddr < BOOTSTARTADDRESS)
+				
+				//Read flash and compare it with the buffer's content
+				if(flashAddress < BOOTSTARTADDRESS)
 				{
-					boot_rww_enable();                  //enable application section
-					cl = 1;                             //clear error flag
+					//Enable the application section
+					boot_rww_enable();
+					
+					//Clear the error flag
+					cl = 1;
+					
 					for(pagptr = 0; pagptr < BUFFERSIZE; pagptr++)
 					{
-						if(pgm_read_byte(FlashAddr - BUFFERSIZE + pagptr) != buf[pagptr])
+						if(pgm_read_byte(flashAddress - BUFFERSIZE + pagptr) != buf[pagptr])
 						{
-							cl = 0;                         //set error flag
+							//Set the error flag and break from the loop
+							cl = 0;                         
 							break;
 						}
 					}
-					if(cl)                              //checksum equal, send ACK
+					
+					//If CRC bytes are equal, send ACK
+					if(cl)
 					{
 						sendByte(XMODEM_ACK);
 						cnt = 0;
 					}
+					
+					//CRC checksum error, tell the host to resend
 					else
 					{
-						sendByte(XMODEM_NAK);             //checksum error, ask resend
-						cnt++;                            //increase error counter
+						//Return the packet number to the expected value
 						packNO--;
+						
+						//Reset the received data buffer pointer
 						bufptr = 0;
-						FlashAddr -= BUFFERSIZE;             //modify Flash page address
+						
+						//Send NAK byte
+						sendByte(XMODEM_NAK);
+						
+						//Increase the error count
+						cnt++;
+						
+						//Modify the flash page address
+						flashAddress -= BUFFERSIZE;
 					}
 				}
 				else                                  //don't need verify, send ACK directly
@@ -223,28 +224,49 @@ int main(void)
 					cnt = 0;
 				}
 			}
-			else                                    //CRC
+			
+			//The CRC values are not the expected ones, tell the host to resend
+			else
 			{
+				//Return the packet number to the expected value
 				packNO--;
+				
+				//Reset the received data buffer pointer
 				bufptr = 0;
-				sendByte(XMODEM_NAK);                 //require resend
+				
+				//Send NAK byte
+				sendByte(XMODEM_NAK);
+				
+				//Increase the error count
 				cnt++;
 			}
 		}
-		else //PackNo
+		
+		//The received packet number and its complement don't match the expected values
+		else
 		{
+			//Return the packet number to the expected value
 			packNO--;
-			bufptr = 0;                               //reinitialize the pointer
+			
+			//Reset the received data buffer pointer
+			bufptr = 0;
+			
+			//Send NAK byte
+			sendByte(XMODEM_NAK);
+			
+			//Increase the error count
 			cnt++;
-			sendByte(XMODEM_NAK);                    //require resend
 		}
-
-		if(cnt > 3)                               //too many error, abort update
+		
+		//If there is too many errors, abort
+		if(cnt > 3)
 		{
 			break;
 		}
 		
 	}
+	
+	//If there is no errors, send ACK
 	if(cnt == 0)
 	{
 		sendByte(XMODEM_ACK);
@@ -253,7 +275,9 @@ int main(void)
 	{
 		sendByte(XMODEM_CAN);
 	}
-	quitToUserApplication();                                     //quit bootloader
+	
+	//Go to the firmware all times
+	quitToFirmwareApplication();
 	return 0;
 }
 
