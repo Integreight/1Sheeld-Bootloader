@@ -6,9 +6,9 @@ Every time the board is reset using the reset button, it will start executing th
  
 ## Fuse Bits: 
  
-- Low Value: 0xFD 
-- High Value: 0xD8 
-- Extended Value: 0xFB 
+- Low Value:		0xFD 
+- High Value:		0xD8 
+- Extended Value:	0xFB 
  
 Click [here](http://eleccelerator.com/fusecalc/fusecalc.php?chip=atmega162&LOW=FD&HIGH=D8&EXTENDED=FB&LOCKBIT=FF) for a description of the enabled fuse bits. 
  
