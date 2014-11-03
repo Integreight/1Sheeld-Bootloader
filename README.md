@@ -31,12 +31,12 @@ The bootloader uses the standard [XModem](http://en.wikipedia.org/wiki/XMODEM) p
 - The app splits the binary file into 128 bytes packets and transmit them frame by frame in this format: 
 
 >  
-    - an SOH byte                                                                 {1 byte} 
-    - the packet number                                                 {1 byte} 
+    - an SOH byte                                     {1 byte} 
+    - the packet number                               {1 byte} 
     - the 1's complement of the packet number         {1 byte} 
-    - the packet                                                                 {128 bytes} 
-    - the high byte of the CRC value                        {1 byte} 
-    - the low byte of the CRC value                         {1 byte} 
+    - the packet                                      {128 bytes} 
+    - the high byte of the CRC value                  {1 byte} 
+    - the low byte of the CRC value                   {1 byte} 
  
 - If the bootloader finds that the CRC values matches the computed ones, it flashs the packet and sends an ACK otherwise it sends a NAK. 
 - The app waits for an ACK to transmit the next frame or a NAK to resends the last one until the whole binary file is sent. 
