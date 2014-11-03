@@ -1,18 +1,43 @@
-# 1Sheeld Bootloader
+1Sheeld bootloader is a small piece of firmware that come pre-installed on your 1Sheeld board and is used mainly for flashing new firmware updates to the board using the app.
 
-The bootloader in general is a normal firmware stored in a special section of the flash memory to be used later for updating firmware at program memory section in flash memory.1Sheeld Bootloader is the bootloader for 1Sheeld firmware where you can update your 1Sheeld firmware with your android smartphone.UART is used for communication.
+ATmega162 flash memory is divided in to two sections, the boot section and the application section. Both of them contain the bootloader and the firmware respectively.
 
-## Documentation 
+Everytime the board is reset using the reset button, it will start executing the bootloader from the boot section and wait for 200ms for a request from the app to update the firmware. If the request is received, the bootloader will communicate with the app, receive the new firmware and replace the old one, it will then switch to the application section and run the new firmware. If no request is received the bootloader will exit and execute the firmware found in the application section.
 
-	https://bitbucket.org/IslamMustafa/1sheeld-bootloader/downloads/Deploying%20boot-loader%20on%20Atmega162.docx
+# Fuse Bits:
 
-## How to install
+- Low Value: 0xFD
+- High Value: 0xD8
+- Extended Value: 0xFB
 
-Clone the project into a new folder in your hard disk.
+Click (here)[http://eleccelerator.com/fusecalc/fusecalc.php?chip=atmega162&LOW=FD&HIGH=D8&EXTENDED=FB&LOCKBIT=FF] for a description of the enabled fuse bits.
 
-	git clone https://github.com/Integreight/1Sheeld-Arduino-Library.git ./OneSheeld
+# Communication method:
+The bootloader communicates with the app through Serial protocol on ATmega162's UART1.
 
-## Building
+# File format
+The program file is transferred in the binary format. So if the file is in Intel hex format (.hex) you have to transform it to binary (.bin) format before flashing.
 
-Open the project with ATmel Studio and build it, in the memory settings from the properties of the solution, you must set .text in the flash segment to be equal to the starting address of the boot-loader. e.g. If we are using the boot size to be 1024 words. There for we’ll put (.text=0x1C00). and then program your device as if it's ordinary hex file but you need to adjust the BOOTSZ1, BOOTSZ0 and BOOTRST fuse bits.The BOOTRST must be set to 0 in order for program counter to start reading the boot-section. The BOOTSZx bits determine the size of the boot-loader.We use maximum bootloader section size (1024 words) which means BOOTSZ0=0, BOOTSZ1=0.
+# Communication protocol:
+The bootloader uses the standard XModem protocol with CRC16 for error checking. Here is a breakdown of what happens:
 
+- The bootloader sends a NAK to notifies the app that it is ready for the password.
+- The app sends an the 8 charachters password : {0x64, 0x0E, 0x1C, 0x39, 0x14, 0x28, 0x57, 0xAA}.
+- The bootloader sends 'C' charachter to notifies the app that it is using the CRC16 method.
+- The app splits the binary file into 128 bytes packets and transmit them frame by frame in this format:
+
+	- an SOH byte 								{1 byte}
+    - the packet number 						{1 byte}
+    - the 1's complement of the packet number 	{1 byte}
+    - the packet 								{128 bytes}
+    - the high byte of the CRC value			{1 byte}
+    - the low byte of the CRC value 			{1 byte}
+
+- If the bootloader finds that the CRC values matched the computed ones, it flashs the packet and sends an ACK otherwise it sends a NAK.
+- The app waits for an ACK to transmit the next frame or a NAK to resends the last one until the whole binary file is sent.
+- After the whole binary file is sent, the app sends an EOT.
+- If there are no errors, the bootloader sends an ACK.
+
+1Sheeld Bootloader is based on (AVR Universal Bootloader(AVRUB))[http://sourceforge.net/projects/avrub] by Shao Ziyang
+
+1Sheeld Bootloader by Integreight, Inc. is licensed under GNU General Public License v3.0 (GNU GPL v3.0).
