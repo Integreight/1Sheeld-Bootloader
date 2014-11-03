@@ -68,7 +68,7 @@ int main(void)
 
 		if(isUartDataAvailable())
 		{
-			//Compare the key byte with is corresponding received byte
+			//Compare the key byte with its corresponding received byte
 			if(readByte() == KEY[cl])
 				cl++;
 			else
