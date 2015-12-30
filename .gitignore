@@ -1,3 +1,17 @@
+# Generated Files
+Build/
+
+# Doxygen
+docs/
+
+# Atmel Studio
+*.atsln
+*.cproj
 *.atsuo
-Debug
-Release
+*.xml
+
+# OSX
+.DS_Store
+
+# Windows
+thumbs.db
