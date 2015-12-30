@@ -12,8 +12,8 @@
 
 */
 
-#ifndef _BOOTLDR_H_
-#define _BOOTLDR_H_
+#ifndef _BOOTLOADER_H_
+#define _BOOTLOADER_H_
 
 #include <avr/io.h>
 #include <avr/wdt.h>
@@ -171,4 +171,4 @@ void calculateCRCChecksum(unsigned char *buf)
 
 #endif
 
-//End of file: bootldr.h
+//End of file: bootloader.h
