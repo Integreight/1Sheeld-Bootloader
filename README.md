@@ -1,4 +1,4 @@
-# 1Sheeld Bootloader #
+# 1Sheeld Bootloader [![Build Status](https://travis-ci.org/Integreight/1Sheeld-Bootloader.svg?branch=master)](https://travis-ci.org/Integreight/1Sheeld-Bootloader)#
 
 ## Overview ##
 
