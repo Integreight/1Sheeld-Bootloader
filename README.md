@@ -45,11 +45,13 @@ Here is a breakdown of the firmware upgrading steps:
 
 ## Building ##
 
-The repo is an Atmel Studio project, but we have plans to make it as a generic C project so you can build it easliy on platforms other than Microsoft Windows with a standard MakeFile. 
+The project is an generic C project, and can be built using any port of *avr-gcc* for either Microsoft Windows, Linux, or Mac OSX. Just make sure you have both *GNU Make* and *avr-gcc* tool chain installed on your platform then run ``` make ``` on the repo's root directory and both the debug and release versions will be built in a new subdirectory called *build*.
 
 ## Uploading ##
 
 The ICSP pins are exposed with a 6-pin header on the bottom of your 1Sheeld board. You can easily connect any ATmega programmer and upload your own version of the bootloader.
+
+If you are using any [USBasp programmer](http://www.fischl.de/usbasp/) and have *avrdude* installed, after building using ``` make ``` you can flash your board by running either ``` make flashdebug ``` or ``` make flashrelease ``` on the repo's root directory. Make sure you erase the chip first by running ``` make erase ```.
  
 ## Fuse Bits ##
 
